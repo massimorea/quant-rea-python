@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 from scipy.stats import zscore
 from tvDatafeed import TvDatafeed, Interval
 
-
 tv = TvDatafeed()
+
 
 # Scarica i dati dello S&P 500 da TradingView
 ticker = "SPX"  # Ticker per S&P 500 su TradingView
@@ -83,3 +83,4 @@ print(f"Rendimento Annualizzato Medio: {annualized_return:.4f}")
 print(f"Deviazione Standard Annualizzata: {annualized_std:.4f}")
 print("\nTabella dei Rendimenti Annuali e Z-Score:")
 print(results)
+
