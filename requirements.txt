@@ -2,4 +2,5 @@ numpy
 pandas
 matplotlib
 scipy
-tvDatafeed
+git+https://github.com/rongardF/tvdatafeed.git
+
