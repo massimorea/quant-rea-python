@@ -13,7 +13,7 @@ from scipy.stats import zscore
 from tvDatafeed import TvDatafeed, Interval
 
 
-
+tv = TvDatafeed()
 
 # Scarica i dati dello S&P 500 da TradingView
 ticker = "SPX"  # Ticker per S&P 500 su TradingView
