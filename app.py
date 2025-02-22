@@ -7,19 +7,33 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 import yfinance as yf
+from tvDatafeed import TvDatafeed, Interval
 
-# Inizializzazione app Dash
+# Inizializzazione dell'app Dash
 app = dash.Dash(__name__)
 server = app.server  # Necessario per Heroku
 
-# Layout dell'app con barra di ricerca per il ticker
+# Connessione a TradingView (lascia username e password vuoti per accesso pubblico)
+tv = TvDatafeed()
+
+# Layout dell'app
 app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'padding': '20px'}, children=[
     html.H1("QUANT-REA: Analisi Volatilità Asset", style={'textAlign': 'center', 'color': 'cyan'}),
 
     html.Div([
-        html.Label("Inserisci un ticker (es. BTC-USD, AAPL, ^GSPC):", style={'color': 'white'}),
+        html.Label("Inserisci un ticker (es. BTC-USD, AAPL, ^GSPC) o TradingView Ticker (es. BINANCE:BTCUSDT):", style={'color': 'white'}),
         dcc.Input(id='ticker-input', type='text', value='BTC-USD', debounce=True, style={'marginLeft': '10px'}),
-        html.Div(id='ticker-warning', style={'color': 'red', 'marginTop': '5px'})  # Mostra errore se ticker non valido
+        html.Label("Fonte Dati:", style={'color': 'white', 'marginLeft': '20px'}),
+        dcc.Dropdown(
+            id='data-source',
+            options=[
+                {'label': 'Yahoo Finance', 'value': 'yfinance'},
+                {'label': 'TradingView', 'value': 'tradingview'}
+            ],
+            value='yfinance',
+            style={'width': '200px', 'display': 'inline-block', 'marginLeft': '10px'}
+        ),
+        html.Div(id='ticker-warning', style={'color': 'red', 'marginTop': '5px'})  # Messaggio di errore se il ticker non è valido
     ], style={'textAlign': 'center', 'marginBottom': '20px'}),
 
     html.Div(id='output-container', children=[
@@ -32,22 +46,22 @@ app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'pa
 
 
 # Funzione per ottenere i dati
-def get_asset_data(ticker):
+def get_asset_data(ticker, source):
     try:
-        asset_data = yf.download(ticker, progress=False)
-        if asset_data.empty:
+        if source == "yfinance":
+            asset_data = yf.download(ticker, progress=False)
+        else:
+            exchange, symbol = ticker.split(":") if ":" in ticker else ("BINANCE", ticker)
+            asset_data = tv.get_hist(symbol=symbol, exchange=exchange, interval=Interval.in_daily, n_bars=1000)
+
+        if asset_data is None or asset_data.empty:
             return None
-        asset_data['Rendimento_Giornaliero'] = asset_data['Close'].pct_change()
-        
-        #asset_data['Rendimento_Settimanale'] = asset_data['Close'].resample('W').ffill().pct_change()
 
-        asset_data['Close_Lag_7'] = asset_data['Close'].shift(5)  # Usa 5 per evitare problemi con i weekend
-        asset_data['Rendimento_Settimanale'] = asset_data['Close'].pct_change(periods=5)
-
-        
-        asset_data['Rendimento_Mensile'] = asset_data['Close'].resample('ME').ffill().pct_change()
+        asset_data['Rendimento_Giornaliero'] = asset_data['close'].pct_change() if 'close' in asset_data else asset_data['Close'].pct_change()
+        asset_data['Rendimento_Settimanale'] = asset_data['Rendimento_Giornaliero'].rolling(5).sum()
+        asset_data['Rendimento_Mensile'] = asset_data['Rendimento_Giornaliero'].rolling(22).sum()
         asset_data['Volatilità_Giornaliera'] = asset_data['Rendimento_Giornaliero'].rolling(window=30).std() * np.sqrt(365)
-        
+
         return asset_data
     except Exception as e:
         return None
@@ -60,10 +74,11 @@ def get_asset_data(ticker):
      dd.Output('grafico-rendimento-mensile', 'figure'),
      dd.Output('grafico-volatilita', 'figure'),
      dd.Output('ticker-warning', 'children')],
-    [dd.Input('ticker-input', 'value')]
+    [dd.Input('ticker-input', 'value'),
+     dd.Input('data-source', 'value')]
 )
-def update_graphs(ticker):
-    data = get_asset_data(ticker)
+def update_graphs(ticker, source):
+    data = get_asset_data(ticker, source)
 
     if data is None:
         return go.Figure(), go.Figure(), go.Figure(), go.Figure(), "⚠️ Ticker non valido. Inserisci un ticker corretto."
@@ -71,33 +86,32 @@ def update_graphs(ticker):
     warning_message = ""
 
     rendimento_giornaliero_fig = go.Figure(data=[
-        go.Bar(x=data['Rendimento_Giornaliero'].groupby(data.index.year).mean().index,
-               y=data['Rendimento_Giornaliero'].groupby(data.index.year).mean() * 100,
-               name="Rendimento Giornaliero",
-               marker_color='blue')
+        go.Bar(x=data.index, y=data['Rendimento_Giornaliero'] * 100, name="Rendimento Giornaliero", marker_color='blue')
     ])
-    rendimento_giornaliero_fig.update_layout(title="Rendimento Giornaliero Annualizzato", xaxis_title="Anno", yaxis_title="Rendimento (%)", height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
+    rendimento_giornaliero_fig.update_layout(title="Rendimento Giornaliero Annualizzato", xaxis_title="Anno",
+                                             yaxis_title="Rendimento (%)", height=500, paper_bgcolor='#121212',
+                                             plot_bgcolor='#121212', font=dict(color='white'))
 
     rendimento_settimanale_fig = go.Figure(data=[
-        go.Bar(x=data['Rendimento_Settimanale'].groupby(data.index.year).mean().index,
-               y=data['Rendimento_Settimanale'].groupby(data.index.year).mean() * 100,
-               name="Rendimento Settimanale",
-               marker_color='green')
+        go.Bar(x=data.index, y=data['Rendimento_Settimanale'] * 100, name="Rendimento Settimanale", marker_color='green')
     ])
-    rendimento_settimanale_fig.update_layout(title="Rendimento Settimanale Annualizzato", xaxis_title="Anno", yaxis_title="Rendimento (%)", height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
+    rendimento_settimanale_fig.update_layout(title="Rendimento Settimanale Annualizzato", xaxis_title="Anno",
+                                             yaxis_title="Rendimento (%)", height=500, paper_bgcolor='#121212',
+                                             plot_bgcolor='#121212', font=dict(color='white'))
 
     rendimento_mensile_fig = go.Figure(data=[
-        go.Bar(x=data['Rendimento_Mensile'].groupby(data.index.year).mean().index,
-               y=data['Rendimento_Mensile'].groupby(data.index.year).mean() * 100,
-               name="Rendimento Mensile",
-               marker_color='orange')
+        go.Bar(x=data.index, y=data['Rendimento_Mensile'] * 100, name="Rendimento Mensile", marker_color='orange')
     ])
-    rendimento_mensile_fig.update_layout(title="Rendimento Mensile Annualizzato", xaxis_title="Anno", yaxis_title="Rendimento (%)", height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
+    rendimento_mensile_fig.update_layout(title="Rendimento Mensile Annualizzato", xaxis_title="Anno",
+                                         yaxis_title="Rendimento (%)", height=500, paper_bgcolor='#121212',
+                                         plot_bgcolor='#121212', font=dict(color='white'))
 
     volatilita_fig = go.Figure(data=[
-        go.Scatter(x=data.index, y=data['Volatilità_Giornaliera'], mode='lines', name="Volatilità Annualizzata", line=dict(color='red'))
+        go.Scatter(x=data.index, y=data['Volatilità_Giornaliera'], mode='lines', name="Volatilità Annualizzata",
+                   line=dict(color='red'))
     ])
-    volatilita_fig.update_layout(title="Volatilità Annualizzata", xaxis_title="Data", yaxis_title="Volatilità", height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
+    volatilita_fig.update_layout(title="Volatilità Annualizzata", xaxis_title="Data", yaxis_title="Volatilità",
+                                 height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
 
     return rendimento_giornaliero_fig, rendimento_settimanale_fig, rendimento_mensile_fig, volatilita_fig, warning_message
 
@@ -105,4 +119,3 @@ def update_graphs(ticker):
 # Avvia il server
 if __name__ == '__main__':
     app.run_server(debug=True)
-
