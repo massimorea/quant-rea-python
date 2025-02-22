@@ -1,3 +1,4 @@
+import os
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -7,92 +8,94 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 
-# Creazione dell'app Dash
+# Inizializzazione app Dash
 app = dash.Dash(__name__)
 server = app.server  # Necessario per Heroku
 
-# Layout della Dashboard con barra di ricerca
+# Layout dell'app con barra di ricerca per il ticker
 app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'padding': '20px'}, children=[
-    html.H1("QUANT-REA: Analisi Volatilità Mercato", style={'textAlign': 'center', 'color': 'white'}),
+    html.H1("QUANT-REA: Analisi Volatilità Asset", style={'textAlign': 'center', 'color': 'cyan'}),
 
-    # Barra di ricerca per selezionare l'asset
     html.Div([
-        html.Label("Inserisci il ticker dell'asset (esempio: BTC-USD, ^GSPC, GC=F):", style={'fontSize': '18px'}),
-        dcc.Input(id="ticker-input", type="text", value="BTC-USD", debounce=True, style={'marginRight': '10px'}),
-        html.Button("Aggiorna Grafici", id="update-button", n_clicks=0, style={'backgroundColor': '#1E90FF', 'color': 'white', 'border': 'none', 'padding': '10px', 'cursor': 'pointer'}),
+        html.Label("Inserisci un ticker (es. BTC-USD, AAPL, ^GSPC):", style={'color': 'white'}),
+        dcc.Input(id='ticker-input', type='text', value='BTC-USD', debounce=True, style={'marginLeft': '10px'}),
+        html.Div(id='ticker-warning', style={'color': 'red', 'marginTop': '5px'})  # Mostra errore se ticker non valido
     ], style={'textAlign': 'center', 'marginBottom': '20px'}),
 
-    # Grafico Rendimenti Mensili
-    dcc.Graph(id='grafico-rendimenti-mensili'),
-
-    # Grafico Rendimenti Settimanali
-    dcc.Graph(id='grafico-rendimenti-settimanali'),
-
-    # Grafico Volatilità
-    dcc.Graph(id='grafico-volatilita')
+    html.Div(id='output-container', children=[
+        dcc.Graph(id='grafico-rendimento-giornaliero'),
+        dcc.Graph(id='grafico-rendimento-settimanale'),
+        dcc.Graph(id='grafico-rendimento-mensile'),
+        dcc.Graph(id='grafico-volatilita')
+    ])
 ])
 
-# Funzione per scaricare i dati da Yahoo Finance
-def scarica_dati(ticker):
-    df = yf.download(ticker)
-    df['Rendimento_Giornaliero'] = df['Close'].pct_change()
-    df['Rendimento_Settimanale'] = df['Close'].resample('W').ffill().pct_change()
-    df['Rendimento_Mensile'] = df['Close'].resample('ME').ffill().pct_change()
-    df['Volatilità_Giornaliera'] = df['Rendimento_Giornaliero'].rolling(window=30).std() * np.sqrt(365)
-    return df
 
-# Callback per aggiornare i grafici quando si cambia asset
+# Funzione per ottenere i dati
+def get_asset_data(ticker):
+    try:
+        asset_data = yf.download(ticker, progress=False)
+        if asset_data.empty:
+            return None
+        asset_data['Rendimento_Giornaliero'] = asset_data['Close'].pct_change()
+        asset_data['Rendimento_Settimanale'] = asset_data['Close'].resample('W').ffill().pct_change()
+        asset_data['Rendimento_Mensile'] = asset_data['Close'].resample('ME').ffill().pct_change()
+        asset_data['Volatilità_Giornaliera'] = asset_data['Rendimento_Giornaliero'].rolling(window=30).std() * np.sqrt(365)
+        return asset_data
+    except Exception as e:
+        return None
+
+
+# Callback per aggiornare i grafici
 @app.callback(
-    [
-        dd.Output('grafico-rendimenti-mensili', 'figure'),
-        dd.Output('grafico-rendimenti-settimanali', 'figure'),
-        dd.Output('grafico-volatilita', 'figure')
-    ],
-    [dd.Input('update-button', 'n_clicks')],
-    [dd.State('ticker-input', 'value')]
+    [dd.Output('grafico-rendimento-giornaliero', 'figure'),
+     dd.Output('grafico-rendimento-settimanale', 'figure'),
+     dd.Output('grafico-rendimento-mensile', 'figure'),
+     dd.Output('grafico-volatilita', 'figure'),
+     dd.Output('ticker-warning', 'children')],
+    [dd.Input('ticker-input', 'value')]
 )
-def aggiorna_grafici(n_clicks, ticker):
-    df = scarica_dati(ticker)
+def update_graphs(ticker):
+    data = get_asset_data(ticker)
 
-    # Grafico Rendimenti Mensili
-    fig_rendimenti_mensili = go.Figure()
-    fig_rendimenti_mensili.add_trace(go.Bar(
-        x=df['Rendimento_Mensile'].groupby(df.index.year).mean().index,
-        y=df['Rendimento_Mensile'].groupby(df.index.year).mean() * 100,
-        name="Rendimento Mensile",
-        marker_color='blue'
-    ))
-    fig_rendimenti_mensili.update_layout(title="Rendimento Mensile Annualizzato", xaxis_title="Anno", yaxis_title="Rendimento (%)", plot_bgcolor="#121212", paper_bgcolor="#121212", font_color="white")
+    if data is None:
+        return go.Figure(), go.Figure(), go.Figure(), go.Figure(), "⚠️ Ticker non valido. Inserisci un ticker corretto."
 
-    # Grafico Rendimenti Settimanali
-    fig_rendimenti_settimanali = go.Figure()
-    fig_rendimenti_settimanali.add_trace(go.Bar(
-        x=df['Rendimento_Settimanale'].groupby(df.index.year).mean().index,
-        y=df['Rendimento_Settimanale'].groupby(df.index.year).mean() * 100,
-        name="Rendimento Settimanale",
-        marker_color='green'
-    ))
-    fig_rendimenti_settimanali.update_layout(title="Rendimento Settimanale Annualizzato", xaxis_title="Anno", yaxis_title="Rendimento (%)", plot_bgcolor="#121212", paper_bgcolor="#121212", font_color="white")
+    warning_message = ""
 
-    # Grafico Volatilità
-    fig_volatilita = go.Figure()
-    fig_volatilita.add_trace(go.Scatter(
-        x=df.index,
-        y=df['Volatilità_Giornaliera'],
-        mode='lines',
-        name="Volatilità Annualizzata",
-        line=dict(color='orange')
-    ))
-    fig_volatilita.update_layout(title="Volatilità Annualizzata", xaxis_title="Data", yaxis_title="Volatilità", plot_bgcolor="#121212", paper_bgcolor="#121212", font_color="white")
+    rendimento_giornaliero_fig = go.Figure(data=[
+        go.Bar(x=data['Rendimento_Giornaliero'].groupby(data.index.year).mean().index,
+               y=data['Rendimento_Giornaliero'].groupby(data.index.year).mean() * 100,
+               name="Rendimento Giornaliero",
+               marker_color='blue')
+    ])
+    rendimento_giornaliero_fig.update_layout(title="Rendimento Giornaliero Annualizzato", xaxis_title="Anno", yaxis_title="Rendimento (%)", height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
 
-    return fig_rendimenti_mensili, fig_rendimenti_settimanali, fig_volatilita
+    rendimento_settimanale_fig = go.Figure(data=[
+        go.Bar(x=data['Rendimento_Settimanale'].groupby(data.index.year).mean().index,
+               y=data['Rendimento_Settimanale'].groupby(data.index.year).mean() * 100,
+               name="Rendimento Settimanale",
+               marker_color='green')
+    ])
+    rendimento_settimanale_fig.update_layout(title="Rendimento Settimanale Annualizzato", xaxis_title="Anno", yaxis_title="Rendimento (%)", height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
 
-# Esegui l'app
-if __name__ == '__main__':
-    app.run_server(debug=True)
+    rendimento_mensile_fig = go.Figure(data=[
+        go.Bar(x=data['Rendimento_Mensile'].groupby(data.index.year).mean().index,
+               y=data['Rendimento_Mensile'].groupby(data.index.year).mean() * 100,
+               name="Rendimento Mensile",
+               marker_color='orange')
+    ])
+    rendimento_mensile_fig.update_layout(title="Rendimento Mensile Annualizzato", xaxis_title="Anno", yaxis_title="Rendimento (%)", height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
+
+    volatilita_fig = go.Figure(data=[
+        go.Scatter(x=data.index, y=data['Volatilità_Giornaliera'], mode='lines', name="Volatilità Annualizzata", line=dict(color='red'))
+    ])
+    volatilita_fig.update_layout(title="Volatilità Annualizzata", xaxis_title="Data", yaxis_title="Volatilità", height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
+
+    return rendimento_giornaliero_fig, rendimento_settimanale_fig, rendimento_mensile_fig, volatilita_fig, warning_message
 
 
-# Esegui l'applicazione
+# Avvia il server
 if __name__ == '__main__':
     app.run_server(debug=True)
 
