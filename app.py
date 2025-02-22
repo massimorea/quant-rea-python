@@ -15,7 +15,7 @@ server = app.server  # Necessario per Heroku
 # Connessione a TradingView
 tv = TvDatafeed()
 
-# Layout dell'app
+# Layout dell'app con tasto e segnale di download
 app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'padding': '20px'}, children=[
     html.H1("QUANT-REA: Analisi Volatilità Asset", style={'textAlign': 'center', 'color': 'cyan'}),
 
@@ -23,6 +23,7 @@ app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'pa
         html.Label("Inserisci un ticker TradingView (es. BINANCE:BTCUSDT, NASDAQ:AAPL):", style={'color': 'white'}),
         dcc.Input(id='ticker-input', type='text', value='BINANCE:BTCUSDT', debounce=True, style={'marginLeft': '10px'}),
         html.Button("Analizza", id='analyze-button', n_clicks=0, style={'marginLeft': '10px', 'backgroundColor': 'cyan'}),
+        html.Div(id='loading-message', style={'color': 'yellow', 'marginTop': '10px'}),
         html.Div(id='ticker-warning', style={'color': 'red', 'marginTop': '5px'})  
     ], style={'textAlign': 'center', 'marginBottom': '20px'}),
 
@@ -60,26 +61,23 @@ def get_asset_data(ticker):
      dd.Output('grafico-rendimento-settimanale', 'figure'),
      dd.Output('grafico-rendimento-mensile', 'figure'),
      dd.Output('grafico-volatilita', 'figure'),
-     dd.Output('ticker-warning', 'children')],
+     dd.Output('ticker-warning', 'children'),
+     dd.Output('loading-message', 'children')],
     [dd.Input('analyze-button', 'n_clicks')],
     [dd.State('ticker-input', 'value')]
 )
 def update_graphs(n_clicks, ticker):
     if n_clicks == 0:
-        return go.Figure(), go.Figure(), go.Figure(), go.Figure(), ""  # Nessun update iniziale
+        return go.Figure(), go.Figure(), go.Figure(), go.Figure(), "", ""  # Nessun update iniziale
 
-    # Rimuove i grafici precedenti mostrando grafici vuoti
-    empty_fig = go.Figure()
-    empty_fig.update_layout(height=500, paper_bgcolor='#121212', plot_bgcolor='#121212')
-
-    # Manda i grafici vuoti mentre carica i dati
-    yield empty_fig, empty_fig, empty_fig, empty_fig, ""
-
-    # Scarica i nuovi dati
+    loading_message = "🔄 Scaricamento dati, attendere..."
+    
     data = get_asset_data(ticker)
 
     if data is None:
-        return go.Figure(), go.Figure(), go.Figure(), go.Figure(), "⚠️ Ticker non valido."
+        return go.Figure(), go.Figure(), go.Figure(), go.Figure(), "⚠️ Ticker non valido.", ""
+
+    warning_message = ""
 
     rendimento_giornaliero_fig = go.Figure(data=[
         go.Bar(x=data.index, y=data['Rendimento_Giornaliero'] * 100, name="Rendimento Giornaliero", marker_color='blue')
@@ -109,9 +107,10 @@ def update_graphs(n_clicks, ticker):
     volatilita_fig.update_layout(title="Volatilità", xaxis_title="Data", yaxis_title="Volatilità",
                                  height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
 
-    return rendimento_giornaliero_fig, rendimento_settimanale_fig, rendimento_mensile_fig, volatilita_fig, ""
+    return rendimento_giornaliero_fig, rendimento_settimanale_fig, rendimento_mensile_fig, volatilita_fig, warning_message, ""
 
 
 # Avvia il server
 if __name__ == '__main__':
     app.run_server(debug=True)
+
