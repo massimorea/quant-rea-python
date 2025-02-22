@@ -1,75 +1,46 @@
 import os
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html
 import plotly.graph_objects as go
+import yfinance as yf
 import pandas as pd
 import numpy as np
-import yfinance as yf
 
-# Scarica i dati di Bitcoin
+# Inizializza l'app Dash
+app = dash.Dash(__name__)
+server = app.server  # Per Heroku
+
+# Scarica i dati storici di Bitcoin
 btc_data = yf.download('BTC-USD')
 
-# Calcola i rendimenti giornalieri, settimanali e mensili
+# Calcola i rendimenti giornalieri
 btc_data['Rendimento_Giornaliero'] = btc_data['Close'].pct_change()
-btc_data['Rendimento_Settimanale'] = btc_data['Close'].resample('W').ffill().pct_change()
-btc_data['Rendimento_Mensile'] = btc_data['Close'].resample('ME').ffill().pct_change()
 
-# Calcola la volatilità giornaliera (su una finestra di 30 giorni)
-btc_data['Volatilità_Giornaliera'] = btc_data['Rendimento_Giornaliero'].rolling(window=30).std() * np.sqrt(365)
+# Crea il grafico con stile dark
+fig = go.Figure()
+fig.add_trace(go.Scatter(
+    x=btc_data.index, 
+    y=btc_data['Close'], 
+    mode='lines', 
+    name='BTC-USD',
+    line=dict(color='#1f77b4')  # Blu per il tema scuro
+))
 
-# Creazione dell'app Dash
-app = dash.Dash(__name__)
-server = app.server  # Necessario per Gunicorn su Heroku
+# Personalizzazione dello sfondo e asse
+fig.update_layout(
+    plot_bgcolor='#1F1F1F',  # Sfondo del grafico scuro
+    paper_bgcolor='#121212',  # Sfondo della pagina
+    font=dict(color='#FFFFFF'),  # Testo bianco
+    xaxis=dict(gridcolor='#444444'),  # Griglia scura
+    yaxis=dict(gridcolor='#444444')
+)
 
-# Layout della Dashboard
-app.layout = html.Div(children=[
-    html.H1("QUANT-REA: Analisi Volatilità Bitcoin", style={'textAlign': 'center'}),
-
-    html.H3("Rendimenti Annualizzati"),
-    dcc.Graph(
-        id='grafico-rendimenti-mensili',
-        figure={
-            'data': [
-                go.Bar(
-                    x=btc_data['Rendimento_Mensile'].groupby(btc_data.index.year).mean().index,
-                    y=btc_data['Rendimento_Mensile'].groupby(btc_data.index.year).mean() * 100,
-                    name="Rendimento Mensile",
-                    marker_color='blue'
-                )
-            ],
-            'layout': go.Layout(
-                title="Rendimento Mensile Annualizzato",
-                xaxis={'title': "Anno"},
-                yaxis={'title': "Rendimento (%)"},
-                height=500
-            )
-        }
-    ),
-
-    html.H3("Volatilità Bitcoin"),
-    dcc.Graph(
-        id='grafico-volatilita',
-        figure={
-            'data': [
-                go.Scatter(
-                    x=btc_data.index,
-                    y=btc_data['Volatilità_Giornaliera'],
-                    mode='lines',
-                    name="Volatilità Annualizzata",
-                    line=dict(color='orange')
-                )
-            ],
-            'layout': go.Layout(
-                title="Volatilità Annualizzata di Bitcoin",
-                xaxis={'title': "Data"},
-                yaxis={'title': "Volatilità"},
-                height=500
-            )
-        }
-    )
+# Layout della pagina con tema scuro
+app.layout = html.Div(style={'backgroundColor': '#121212', 'color': '#FFFFFF', 'padding': '20px'}, children=[
+    html.H1("Bitcoin Price Chart", style={'textAlign': 'center', 'color': '#76D7C4'}),
+    dcc.Graph(figure=fig)
 ])
 
-# Esegui l'applicazione
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run_server(debug=True)
+
