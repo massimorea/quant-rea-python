@@ -1,3 +1,4 @@
+plotly.graph_objects
 yfinance 
 flask
 gunicorn
