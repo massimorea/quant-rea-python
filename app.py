@@ -70,12 +70,21 @@ def update_graphs(n_clicks, ticker):
     if n_clicks == 0:
         return go.Figure(), go.Figure(), go.Figure(), go.Figure(), "", ""  # Nessun update iniziale
 
+    # ✅ **Fase 1: Cancella i grafici appena si preme il tasto "Analizza"**
+    empty_fig = go.Figure()
+    empty_fig.update_layout(height=500, paper_bgcolor='#121212', plot_bgcolor='#121212')
+
+    # ✅ **Mostra il messaggio "Scaricamento dati" mentre i dati vengono aggiornati**
     loading_message = "🔄 Scaricamento dati, attendere..."
-    
+
+    # ✅ **Ritorna i grafici vuoti immediatamente per cancellare i dati precedenti**
+    yield empty_fig, empty_fig, empty_fig, empty_fig, "", loading_message
+
+    # ✅ **Fase 2: Scarica i nuovi dati**
     data = get_asset_data(ticker)
 
     if data is None:
-        return go.Figure(), go.Figure(), go.Figure(), go.Figure(), "⚠️ Ticker non valido.", ""
+        return empty_fig, empty_fig, empty_fig, empty_fig, "⚠️ Ticker non valido.", ""
 
     warning_message = ""
 
@@ -113,4 +122,3 @@ def update_graphs(n_clicks, ticker):
 # Avvia il server
 if __name__ == '__main__':
     app.run_server(debug=True)
-
