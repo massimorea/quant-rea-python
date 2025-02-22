@@ -42,7 +42,7 @@ def get_asset_data(ticker):
         asset_data['Rendimento_Mensile'] = asset_data['Close'].resample('ME').ffill().pct_change()
         asset_data['Volatilità_Giornaliera'] = asset_data['Rendimento_Giornaliero'].rolling(window=30).std() * np.sqrt(365)
         print(f"🔍 DEBUG {ticker}: Dati settimanali")
-        print(data[['Close', 'Rendimento_Settimanale']].tail(20))
+        print(asset_data[['Close', 'Rendimento_Settimanale']].tail(20))
         return asset_data
     except Exception as e:
         return None
