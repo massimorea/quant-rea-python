@@ -1,5 +1,6 @@
 from flask import Flask
-#import rendimenti_asset  # Se vuoi richiamare funzioni dal tuo script
+import rendimenti-asset  # Se vuoi richiamare funzioni dal tuo script
+#import rendimenti_v  # Se vuoi richiamare funzioni dal tuo script
 
 app = Flask(__name__)
 
