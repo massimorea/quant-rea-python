@@ -52,7 +52,7 @@ def get_asset_data(ticker, source):
             asset_data = yf.download(ticker, progress=False)
         else:
             exchange, symbol = ticker.split(":") if ":" in ticker else ("", ticker)
-            asset_data = tv.get_hist(symbol=symbol, exchange=exchange, interval=Interval.in_daily, n_bars=1000)
+            asset_data = tv.get_hist(symbol=symbol, exchange=exchange, interval=Interval.in_daily, n_bars=100000)
 
         if asset_data is None or asset_data.empty:
             return None
@@ -88,21 +88,21 @@ def update_graphs(ticker, source):
     rendimento_giornaliero_fig = go.Figure(data=[
         go.Bar(x=data.index, y=data['Rendimento_Giornaliero'] * 100, name="Rendimento Giornaliero", marker_color='blue')
     ])
-    rendimento_giornaliero_fig.update_layout(title="Rendimento Giornaliero Annualizzato", xaxis_title="Anno",
+    rendimento_giornaliero_fig.update_layout(title="Rendimento Giornaliero", xaxis_title="Anno",
                                              yaxis_title="Rendimento (%)", height=500, paper_bgcolor='#121212',
                                              plot_bgcolor='#121212', font=dict(color='white'))
 
     rendimento_settimanale_fig = go.Figure(data=[
         go.Bar(x=data.index, y=data['Rendimento_Settimanale'] * 100, name="Rendimento Settimanale", marker_color='green')
     ])
-    rendimento_settimanale_fig.update_layout(title="Rendimento Settimanale Annualizzato", xaxis_title="Anno",
+    rendimento_settimanale_fig.update_layout(title="Rendimento Settimanale", xaxis_title="Anno",
                                              yaxis_title="Rendimento (%)", height=500, paper_bgcolor='#121212',
                                              plot_bgcolor='#121212', font=dict(color='white'))
 
     rendimento_mensile_fig = go.Figure(data=[
         go.Bar(x=data.index, y=data['Rendimento_Mensile'] * 100, name="Rendimento Mensile", marker_color='orange')
     ])
-    rendimento_mensile_fig.update_layout(title="Rendimento Mensile Annualizzato", xaxis_title="Anno",
+    rendimento_mensile_fig.update_layout(title="Rendimento Mensile", xaxis_title="Anno",
                                          yaxis_title="Rendimento (%)", height=500, paper_bgcolor='#121212',
                                          plot_bgcolor='#121212', font=dict(color='white'))
 
@@ -110,7 +110,7 @@ def update_graphs(ticker, source):
         go.Scatter(x=data.index, y=data['Volatilità_Giornaliera'], mode='lines', name="Volatilità Annualizzata",
                    line=dict(color='red'))
     ])
-    volatilita_fig.update_layout(title="Volatilità Annualizzata", xaxis_title="Data", yaxis_title="Volatilità",
+    volatilita_fig.update_layout(title="Volatilità", xaxis_title="Data", yaxis_title="Volatilità",
                                  height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
 
     return rendimento_giornaliero_fig, rendimento_settimanale_fig, rendimento_mensile_fig, volatilita_fig, warning_message
