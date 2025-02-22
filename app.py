@@ -35,7 +35,6 @@ app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'pa
     ])
 ])
 
-
 # Funzione per ottenere i dati SOLO da TradingView
 def get_asset_data(ticker):
     try:
@@ -54,7 +53,6 @@ def get_asset_data(ticker):
     except Exception as e:
         return None
 
-
 # Callback per aggiornare i grafici solo dopo il click sul bottone
 @app.callback(
     [dd.Output('grafico-rendimento-giornaliero', 'figure'),
@@ -67,6 +65,9 @@ def get_asset_data(ticker):
     [dd.State('ticker-input', 'value')]
 )
 def update_graphs(n_clicks, ticker):
+    # ⬇️ AGGIUNTA: forziamo l'esecuzione del comando e verifichiamo la chiamata della callback
+    print("FORZANDO IL COMANDO update_graphs: n_clicks =", n_clicks, " - ticker =", ticker)
+
     if n_clicks == 0:
         return go.Figure(), go.Figure(), go.Figure(), go.Figure(), "", ""  # Nessun update iniziale
 
@@ -108,7 +109,6 @@ def update_graphs(n_clicks, ticker):
                                  height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
 
     return rendimento_giornaliero_fig, rendimento_settimanale_fig, rendimento_mensile_fig, volatilita_fig, warning_message, ""
-
 
 # Avvia il server
 if __name__ == '__main__':
