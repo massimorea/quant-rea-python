@@ -37,7 +37,7 @@ app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'pa
 # Funzione per ottenere i dati SOLO da TradingView
 def get_asset_data(ticker):
     try:
-        exchange, symbol = ticker.split(":") if ":" in ticker else ("BINANCE", ticker)
+        exchange, symbol = ticker.split(":") if ":" in ticker else ("", ticker)
         asset_data = tv.get_hist(symbol=symbol, exchange=exchange, interval=Interval.in_daily, n_bars=100000)
 
         if asset_data is None or asset_data.empty:
