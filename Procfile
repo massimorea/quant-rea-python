@@ -1,3 +1,4 @@
-worker: python rendimenti-asset.py
-worker: python rendimenti-volatilita.py
+worker-asset: python rendimenti-asset.py
+worker-vol: python rendimenti-volatilita.py
 web: gunicorn app:app
+
