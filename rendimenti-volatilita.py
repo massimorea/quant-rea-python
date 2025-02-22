@@ -1,3 +1,4 @@
+import os
 import yfinance as yf
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -41,7 +42,11 @@ def plot_rendimenti_per_frequenza(rendimento, frequenza, filename):
     plt.grid(True)
 
     plt.tight_layout()
-    plt.savefig(filename)
+
+    # Salva in una cartella "static"
+    os.makedirs("static", exist_ok=True)  # Crea la cartella se non esiste
+    filepath = os.path.join("static", filename)
+    plt.savefig(filepath)
     plt.close()
 
 def plot_volatilita(df, filename):
@@ -58,7 +63,11 @@ def plot_volatilita(df, filename):
     plt.legend()
 
     plt.tight_layout()
-    plt.savefig(filename)
+
+    # Salva in "static"
+    os.makedirs("static", exist_ok=True)
+    filepath = os.path.join("static", filename)
+    plt.savefig(filepath)
     plt.close()
 
 def main():
@@ -88,10 +97,10 @@ def main():
 
     # Stampa qualche info in console/log
     print("Analisi volatilità Bitcoin completata. Grafici salvati in:")
-    print("  - rendimenti_giornaliero.png")
-    print("  - rendimenti_settimanale.png")
-    print("  - rendimenti_mensile.png")
-    print("  - volatilita.png")
+    print("  - static/rendimenti_giornaliero.png")
+    print("  - static/rendimenti_settimanale.png")
+    print("  - static/rendimenti_mensile.png")
+    print("  - static/volatilita.png")
 
 if __name__ == "__main__":
     main()
