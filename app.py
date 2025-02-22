@@ -12,17 +12,19 @@ from tvDatafeed import TvDatafeed, Interval
 app = dash.Dash(__name__)
 server = app.server  # Necessario per Heroku
 
-# Connessione a TradingView (lascia username e password vuoti per accesso pubblico)
+# Connessione a TradingView
 tv = TvDatafeed()
 
-# Layout dell'app (rimosso il dropdown della fonte dati)
+# Layout dell'app con tasto e segnale di download
 app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'padding': '20px'}, children=[
     html.H1("QUANT-REA: Analisi Volatilità Asset", style={'textAlign': 'center', 'color': 'cyan'}),
 
     html.Div([
         html.Label("Inserisci un ticker TradingView (es. BINANCE:BTCUSDT, NASDAQ:AAPL):", style={'color': 'white'}),
         dcc.Input(id='ticker-input', type='text', value='BINANCE:BTCUSDT', debounce=True, style={'marginLeft': '10px'}),
-        html.Div(id='ticker-warning', style={'color': 'red', 'marginTop': '5px'})  # Messaggio di errore se il ticker non è valido
+        html.Button("Analizza", id='analyze-button', n_clicks=0, style={'marginLeft': '10px', 'backgroundColor': 'cyan'}),
+        html.Div(id='loading-message', style={'color': 'yellow', 'marginTop': '10px'}),
+        html.Div(id='ticker-warning', style={'color': 'red', 'marginTop': '5px'})  
     ], style={'textAlign': 'center', 'marginBottom': '20px'}),
 
     html.Div(id='output-container', children=[
@@ -53,20 +55,27 @@ def get_asset_data(ticker):
         return None
 
 
-# Callback per aggiornare i grafici
+# Callback per aggiornare i grafici solo dopo il click sul bottone
 @app.callback(
     [dd.Output('grafico-rendimento-giornaliero', 'figure'),
      dd.Output('grafico-rendimento-settimanale', 'figure'),
      dd.Output('grafico-rendimento-mensile', 'figure'),
      dd.Output('grafico-volatilita', 'figure'),
-     dd.Output('ticker-warning', 'children')],
-    [dd.Input('ticker-input', 'value')]
+     dd.Output('ticker-warning', 'children'),
+     dd.Output('loading-message', 'children')],
+    [dd.Input('analyze-button', 'n_clicks')],
+    [dd.State('ticker-input', 'value')]
 )
-def update_graphs(ticker):
+def update_graphs(n_clicks, ticker):
+    if n_clicks == 0:
+        return go.Figure(), go.Figure(), go.Figure(), go.Figure(), "", ""  # Nessun update iniziale
+
+    loading_message = "🔄 Scaricamento dati, attendere..."
+    
     data = get_asset_data(ticker)
 
     if data is None:
-        return go.Figure(), go.Figure(), go.Figure(), go.Figure(), "⚠️ Ticker non valido. Inserisci un ticker corretto."
+        return go.Figure(), go.Figure(), go.Figure(), go.Figure(), "⚠️ Ticker non valido.", ""
 
     warning_message = ""
 
@@ -98,7 +107,7 @@ def update_graphs(ticker):
     volatilita_fig.update_layout(title="Volatilità", xaxis_title="Data", yaxis_title="Volatilità",
                                  height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
 
-    return rendimento_giornaliero_fig, rendimento_settimanale_fig, rendimento_mensile_fig, volatilita_fig, warning_message
+    return rendimento_giornaliero_fig, rendimento_settimanale_fig, rendimento_mensile_fig, volatilita_fig, warning_message, ""
 
 
 # Avvia il server
