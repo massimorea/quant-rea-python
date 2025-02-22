@@ -51,7 +51,7 @@ def get_asset_data(ticker, source):
         if source == "yfinance":
             asset_data = yf.download(ticker, progress=False)
         else:
-            exchange, symbol = ticker.split(":") if ":" in ticker else ("BINANCE", ticker)
+            exchange, symbol = ticker.split(":") if ":" in ticker else ("", ticker)
             asset_data = tv.get_hist(symbol=symbol, exchange=exchange, interval=Interval.in_daily, n_bars=1000)
 
         if asset_data is None or asset_data.empty:
