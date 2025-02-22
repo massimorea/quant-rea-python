@@ -41,8 +41,8 @@ def get_asset_data(ticker):
         
         #asset_data['Rendimento_Settimanale'] = asset_data['Close'].resample('W').ffill().pct_change()
 
-        asset_data['Close_Lag_7'] = btc_data['Close'].shift(5)  # Usa 5 per evitare problemi con i weekend
-        asset_data['Rendimento_Settimanale'] = btc_data['Close'].pct_change(periods=5)
+        asset_data['Close_Lag_7'] = asset_data['Close'].shift(5)  # Usa 5 per evitare problemi con i weekend
+        asset_data['Rendimento_Settimanale'] = asset_data['Close'].pct_change(periods=5)
 
         
         asset_data['Rendimento_Mensile'] = asset_data['Close'].resample('ME').ffill().pct_change()
