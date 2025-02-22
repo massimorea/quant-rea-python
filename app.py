@@ -38,11 +38,16 @@ def get_asset_data(ticker):
         if asset_data.empty:
             return None
         asset_data['Rendimento_Giornaliero'] = asset_data['Close'].pct_change()
-        asset_data['Rendimento_Settimanale'] = asset_data['Close'].resample('W').ffill().pct_change()
+        
+        #asset_data['Rendimento_Settimanale'] = asset_data['Close'].resample('W').ffill().pct_change()
+
+        asset_data['Close_Lag_7'] = btc_data['Close'].shift(5)  # Usa 5 per evitare problemi con i weekend
+        asset_data['Rendimento_Settimanale'] = btc_data['Close'].pct_change(periods=5)
+
+        
         asset_data['Rendimento_Mensile'] = asset_data['Close'].resample('ME').ffill().pct_change()
         asset_data['Volatilità_Giornaliera'] = asset_data['Rendimento_Giornaliero'].rolling(window=30).std() * np.sqrt(365)
-        print(f"🔍 DEBUG {ticker}: Dati settimanali")
-        print(asset_data[['Close', 'Rendimento_Settimanale']].tail(20))
+        
         return asset_data
     except Exception as e:
         return None
