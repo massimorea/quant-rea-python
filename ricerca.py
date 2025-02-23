@@ -57,7 +57,8 @@ def get_search_layout():
             value=None,
             placeholder="Seleziona un ticker",
             clearable=True,
-            style={'width': '300px', 'display': 'inline-block', 'marginLeft': '10px'}
+            
+            style={'width': '300px', 'display': 'inline-block', 'marginLeft': '10px','color': 'black'}
         )
     ], style={'textAlign': 'center', 'marginBottom': '20px'})
 
