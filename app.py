@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from tvDatafeed import TvDatafeed, Interval
-from ricerca import get_search_layout, register_search_callbacks  # Importa il modulo ricerca
+from ricerca import get_search_layout, register_search_callbacks  # Importa ricerca.py
 
 # Inizializzazione dell'app Dash
 app = dash.Dash(__name__)
@@ -20,8 +20,11 @@ tv = TvDatafeed()
 app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'padding': '20px'}, children=[
     html.H1("QUANT-REA: Analisi Volatilità Asset", style={'textAlign': 'center', 'color': 'cyan'}),
 
-    # Sezione di ricerca
+    # Sezione di ricerca con valore selezionato
     get_search_layout(),
+
+    # Input nascosto per memorizzare il ticker selezionato
+    dcc.Input(id='selected-ticker', type='text', value="", style={'display': 'none'}),
 
     html.Div(id='loading-message', style={'color': 'yellow', 'marginTop': '10px', 'textAlign': 'center'}),
 
@@ -111,3 +114,4 @@ register_search_callbacks(app)
 # Avvia il server
 if __name__ == '__main__':
     app.run_server(debug=True)
+
