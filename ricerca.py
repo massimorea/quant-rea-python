@@ -8,25 +8,23 @@ def load_tickers_from_csv(path="all_tickers.csv"):
     return pd.read_csv(path)
 
 def get_search_layout():
-    """ Layout con dropdown per la ricerca, centrato e più largo. """
+    """ Layout con dropdown per la ricerca. """
     return html.Div([
-        html.Label("Seleziona un Ticker:", style={'color': 'white', 'fontSize': '18px', 'display': 'block', 'textAlign': 'center'}),
+        html.Label("Seleziona un Ticker:", style={'color': 'white'}),
         dcc.Dropdown(
             id='search-dropdown',
             options=[],  # Verrà aggiornato dinamicamente
             value=None,  # Il valore selezionato rimane
-            placeholder="🔍 Digita almeno 3 caratteri per cercare...",
+            placeholder="Digita almeno 3 caratteri per cercare...",
             clearable=False,
             searchable=True,
-            style={
-                'width': '500px',  # 🔹 Allargato
-                'color': 'black',
-                'backgroundColor': 'white',
-                'margin': 'auto',  # 🔹 Centrato
-                'display': 'block'
-            }
+            style={'width': '700px', 'color': 'black', 'backgroundColor': 'white', 'margin': 'auto'}
         ),
-        html.Div(id='search-status', style={'color': 'yellow', 'marginTop': '5px', 'textAlign': 'center'})
+        html.Div(id='search-status', style={'color': 'yellow', 'marginTop': '5px', 'textAlign': 'center'}),
+        
+
+        # ✅ Mantiene il ticker selezionato
+        #dcc.Input(id='selected-ticker', type='text', value="", style={'display': 'online'})
     ], style={'textAlign': 'center', 'marginBottom': '20px'})
 
 def register_search_callbacks(app):
@@ -38,7 +36,7 @@ def register_search_callbacks(app):
     )
     def update_dropdown_options(search_value):
         if not search_value or len(search_value) < 3:
-            return [], "⚠️ Digita almeno 3 caratteri per cercare..."
+            return [], "Digita almeno 3 caratteri per cercare..."
         
         df = load_tickers_from_csv()
         mask = (df['Ticker'].str.contains(search_value, case=False, na=False) |
@@ -52,3 +50,11 @@ def register_search_callbacks(app):
                     'value': f"{row['Exchange']}:{row['Ticker']}"} for _, row in filtered_df.iterrows()]
         return options, ""
 
+    @app.callback(
+        [dd.Output('selected-ticker', 'value'),
+         dd.Output('search-dropdown', 'value')],  # ✅ Mantiene il valore nel dropdown
+        [dd.Input('search-dropdown', 'value')],
+        [dd.State('selected-ticker', 'value')]
+    )
+    def update_selected_ticker(value, current_ticker):
+        return value or current_ticker, value or current_ticker  # ✅ Evita il reset
