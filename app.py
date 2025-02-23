@@ -1,4 +1,5 @@
-import os
+# app.py
+
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -8,8 +9,7 @@ import pandas as pd
 import numpy as np
 from tvDatafeed import TvDatafeed, Interval
 
-# Importa layout e callback di ricerca dal tuo file "ricerca.py"
-# Presumendo che 'ricerca.py' abbia: get_search_layout() e register_search_callbacks(app)
+# Importa layout e (eventuali) callback di ricerca
 from ricerca import get_search_layout, register_search_callbacks
 
 app = dash.Dash(__name__)
@@ -17,14 +17,14 @@ server = app.server  # Necessario per Heroku
 
 tv = TvDatafeed()
 
-# Layout principale dell'app
+# Layout principale
 app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'padding': '20px'}, children=[
 
-    html.H1("QUANT-REA: Analisi Volatilità Asset", style={'textAlign': 'center', 'color': 'cyan'}),
+    html.H1("QUANT-REA: Analisi Volatilità Asset",
+            style={'textAlign': 'center', 'color': 'cyan'}),
 
-    # Layout di ricerca importato da ricerca.py
-    # Ricorda di settare il colore del testo nel dropdown a nero
-    get_search_layout(),  # Qui dentro c'è l'html con 'search-input' + 'search-dropdown'
+    # Inseriamo il layout di ricerca dal file ricerca.py
+    get_search_layout(),
 
     # Bottone “Analizza”
     html.Button("Analizza", id='analyze-button', n_clicks=0,
@@ -34,8 +34,8 @@ app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'pa
     html.Div(id='ticker-warning',
              style={'color': 'red', 'marginTop': '5px', 'textAlign': 'center'}),
     html.Div(id='loading-message',
-             style={'color': 'yellow', 'marginTop': '10px', 'fontSize': '16px',
-                    'fontWeight': 'bold', 'textAlign': 'center'}),
+             style={'color': 'yellow', 'marginTop': '10px',
+                    'fontSize': '16px', 'fontWeight': 'bold', 'textAlign': 'center'}),
 
     # Grafici
     dcc.Graph(id='grafico-rendimento-giornaliero'),
@@ -44,10 +44,14 @@ app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'pa
     dcc.Graph(id='grafico-volatilita')
 ])
 
-# Registra i callback di ricerca (autocomplete) dal modulo ricerca.py
+# Se in ricerca.py avessi definito callback aggiuntivi, li registreresti qui
 register_search_callbacks(app)
 
 def get_asset_data(ticker):
+    """
+    Scarica i dati dal ticker selezionato, es: 'NYSE:BABA'.
+    Calcola rendimenti e volatilità.
+    """
     try:
         exchange, symbol = ticker.split(":") if ":" in ticker else ("", ticker)
         asset_data = tv.get_hist(symbol=symbol, exchange=exchange,
@@ -64,10 +68,9 @@ def get_asset_data(ticker):
             * np.sqrt(365)
         )
         return asset_data
-    except Exception as e:
+    except Exception:
         return None
 
-# Callback per generare i grafici quando si preme "Analizza"
 @app.callback(
     [
         dd.Output('grafico-rendimento-giornaliero', 'figure'),
@@ -82,13 +85,11 @@ def get_asset_data(ticker):
 )
 def update_graphs(n_clicks, selected_ticker):
     if n_clicks == 0:
-        # Primo avvio, nessun grafico
         return (go.Figure(), go.Figure(), go.Figure(), go.Figure(), "", "")
 
     loading_message = "🔄 Scaricamento dati, attendere..."
 
     if not selected_ticker:
-        # Se l'utente non ha selezionato niente dal dropdown
         return (go.Figure(), go.Figure(), go.Figure(), go.Figure(),
                 "⚠️ Seleziona un ticker dalla lista!", "")
 
@@ -98,7 +99,8 @@ def update_graphs(n_clicks, selected_ticker):
                 f"⚠️ Ticker '{selected_ticker}' non valido.", "")
 
     warning_message = ""
-    # Grafico Giornaliero
+
+    # Rendimento Giornaliero
     fig_giornaliero = go.Figure(data=[
         go.Bar(x=data.index, y=data['Rendimento_Giornaliero']*100,
                name="Rendimento Giornaliero", marker_color='blue')
@@ -113,7 +115,7 @@ def update_graphs(n_clicks, selected_ticker):
         font=dict(color='white')
     )
 
-    # Grafico Settimanale
+    # Rendimento Settimanale
     fig_settimanale = go.Figure(data=[
         go.Bar(x=data.index, y=data['Rendimento_Settimanale']*100,
                name="Rendimento Settimanale", marker_color='green')
@@ -128,7 +130,7 @@ def update_graphs(n_clicks, selected_ticker):
         font=dict(color='white')
     )
 
-    # Grafico Mensile
+    # Rendimento Mensile
     fig_mensile = go.Figure(data=[
         go.Bar(x=data.index, y=data['Rendimento_Mensile']*100,
                name="Rendimento Mensile", marker_color='orange')
@@ -143,7 +145,7 @@ def update_graphs(n_clicks, selected_ticker):
         font=dict(color='white')
     )
 
-    # Grafico Volatilità
+    # Volatilità
     fig_vol = go.Figure(data=[
         go.Scatter(x=data.index, y=data['Volatilità_Giornaliera'],
                    mode='lines', name="Volatilità Annualizzata",
@@ -159,8 +161,8 @@ def update_graphs(n_clicks, selected_ticker):
         font=dict(color='white')
     )
 
-    return (fig_giornaliero, fig_settimanale, fig_mensile, fig_vol, warning_message, "")
+    return (fig_giornaliero, fig_settimanale, fig_mensile,
+            fig_vol, warning_message, "")
 
 if __name__ == '__main__':
     app.run_server(debug=True)
-
