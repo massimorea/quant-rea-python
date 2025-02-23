@@ -23,7 +23,7 @@ def get_search_layout():
         html.Div(id='search-status', style={'color': 'yellow', 'marginTop': '5px', 'textAlign': 'center'}),
 
         # ✅ Mantiene il ticker selezionato
-        dcc.Input(id='selected-ticker', type='text', value="", style={'display': 'online'})
+        #dcc.Input(id='selected-ticker', type='text', value="", style={'display': 'online'})
     ], style={'textAlign': 'center', 'marginBottom': '20px'})
 
 def register_search_callbacks(app):
