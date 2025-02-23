@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from tvDatafeed import TvDatafeed, Interval
-from ricerca import get_search_layout, register_search_callbacks
+from ricerca import get_search_layout, register_search_callbacks  # Importa il modulo ricerca
 
 # Inizializzazione dell'app Dash
 app = dash.Dash(__name__)
@@ -16,18 +16,16 @@ server = app.server  # Necessario per Heroku
 # Connessione a TradingView
 tv = TvDatafeed()
 
-# Layout con il modulo di ricerca
+# Layout dell'app, ora usa la ricerca con selezione automatica
 app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'padding': '20px'}, children=[
     html.H1("QUANT-REA: Analisi Volatilità Asset", style={'textAlign': 'center', 'color': 'cyan'}),
-    
-    # Sezione di ricerca importata da ricerca.py
+
+    # Sezione di ricerca
     get_search_layout(),
 
-    html.Button("Analizza", id='analyze-button', n_clicks=0,
-                style={'marginTop': '10px', 'backgroundColor': 'cyan'}),
-    
-    html.Div(id='loading-message', style={'color': 'yellow', 'marginTop': '10px'}),
+    html.Div(id='loading-message', style={'color': 'yellow', 'marginTop': '10px', 'textAlign': 'center'}),
 
+    # Container per i grafici
     html.Div(id='output-container', children=[
         dcc.Graph(id='grafico-rendimento-giornaliero'),
         dcc.Graph(id='grafico-rendimento-settimanale'),
@@ -39,7 +37,11 @@ app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'pa
 # Funzione per ottenere i dati SOLO da TradingView
 def get_asset_data(ticker):
     try:
-        asset_data = tv.get_hist(symbol=ticker, exchange="", interval=Interval.in_daily, n_bars=100000)
+        if not ticker:
+            return None  # Se non c'è un ticker selezionato, non caricare dati
+
+        exchange, symbol = ticker.split(":") if ":" in ticker else ("", ticker)
+        asset_data = tv.get_hist(symbol=symbol, exchange=exchange, interval=Interval.in_daily, n_bars=100000)
 
         if asset_data is None or asset_data.empty:
             return None
@@ -53,22 +55,21 @@ def get_asset_data(ticker):
     except Exception as e:
         return None
 
-# Callback per aggiornare i grafici solo dopo il click sul bottone
+# Callback per aggiornare automaticamente i grafici dopo la selezione del ticker
 @app.callback(
     [dd.Output('grafico-rendimento-giornaliero', 'figure'),
      dd.Output('grafico-rendimento-settimanale', 'figure'),
      dd.Output('grafico-rendimento-mensile', 'figure'),
      dd.Output('grafico-volatilita', 'figure'),
      dd.Output('loading-message', 'children')],
-    [dd.Input('analyze-button', 'n_clicks')],
-    [dd.State('search-input', 'value')]  # Usa il valore selezionato dalla ricerca
+    [dd.Input('selected-ticker', 'value')]  # Usa il valore selezionato dalla ricerca
 )
-def update_graphs(n_clicks, ticker):
-    if n_clicks == 0 or not ticker:
+def update_graphs(ticker):
+    if not ticker:
         return go.Figure(), go.Figure(), go.Figure(), go.Figure(), ""
 
     loading_message = "🔄 Scaricamento dati, attendere..."
-    
+
     data = get_asset_data(ticker)
 
     if data is None:
@@ -104,7 +105,7 @@ def update_graphs(n_clicks, ticker):
 
     return rendimento_giornaliero_fig, rendimento_settimanale_fig, rendimento_mensile_fig, volatilita_fig, ""
 
-# Registra i callback della ricerca
+# Registra le funzioni di ricerca
 register_search_callbacks(app)
 
 # Avvia il server
