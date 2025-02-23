@@ -15,6 +15,7 @@ def get_search_layout():
     """
     Restituisce un layout con un UNICO dropdown 'searchable' che
     verrà popolato dinamicamente solo dopo aver digitato almeno 3 caratteri.
+    Il ticker selezionato viene mostrato in un input nascosto per `app.py`.
     """
     return html.Div([
         html.Label("Seleziona un Ticker:", style={'color': 'white'}),
@@ -31,13 +32,16 @@ def get_search_layout():
                 'backgroundColor': 'white' # Sfondo bianco
             }
         ),
-        html.Div(id='search-status', style={'color': 'yellow', 'marginTop': '5px', 'textAlign': 'center'})
+        html.Div(id='search-status', style={'color': 'yellow', 'marginTop': '5px', 'textAlign': 'center'}),
+
+        # Input nascosto che memorizza il valore selezionato (exchange:ticker)
+        dcc.Input(id='selected-ticker', type='text', value="", style={'display': 'none'})
     ], style={'textAlign': 'center', 'marginBottom': '20px'})
 
 def register_search_callbacks(app):
     """
     Registra il callback per aggiornare dinamicamente le opzioni del dropdown.
-    Carica il CSV solo se l'utente ha digitato almeno 3 caratteri.
+    Inoltre, aggiorna l'input nascosto `selected-ticker` con il valore selezionato.
     """
     @app.callback(
         [dd.Output('search-dropdown', 'options'),
@@ -46,11 +50,9 @@ def register_search_callbacks(app):
     )
     def update_dropdown_options(search_value):
         if not search_value or len(search_value) < 3:
-            # Se il testo è vuoto o meno di 3 caratteri, non restituisce opzioni
             return [], "Digita almeno 3 caratteri per cercare..."
-        # Carica il CSV in questo callback (on-demand)
+        
         df = load_tickers_from_csv()
-        # Filtra solo per i campi Ticker e Descrizione (case-insensitive)
         mask = (
             df['Ticker'].str.contains(search_value, case=False, na=False) |
             df['Descrizione'].str.contains(search_value, case=False, na=False)
@@ -58,12 +60,25 @@ def register_search_callbacks(app):
         filtered_df = df[mask]
         if filtered_df.empty:
             return [], "⚠️ Nessun risultato trovato."
+        
         options = []
         for _, row in filtered_df.iterrows():
             ticker = str(row['Ticker'])
             descr = str(row['Descrizione'])
             exch  = str(row['Exchange'])
             label = f"{ticker} - {descr} ({exch})"
-            value = f"{exch}:{ticker}"
+            value = f"{exch}:{ticker}"  # Questo è il formato richiesto
             options.append({'label': label, 'value': value})
+
         return options, ""
+
+    @app.callback(
+        dd.Output('selected-ticker', 'value'),
+        [dd.Input('search-dropdown', 'value')]
+    )
+    def update_selected_ticker(selected_value):
+        """
+        Quando selezioni un asset, lo salva nel campo nascosto `selected-ticker`.
+        """
+        return selected_value if selected_value else ""
+
