@@ -9,33 +9,33 @@ import numpy as np
 from tvDatafeed import TvDatafeed, Interval
 
 # Importa layout e callback di ricerca dal tuo file "ricerca.py"
+# Presumendo che 'ricerca.py' abbia: get_search_layout() e register_search_callbacks(app)
 from ricerca import get_search_layout, register_search_callbacks
 
 app = dash.Dash(__name__)
-server = app.server  # Per Heroku
+server = app.server  # Necessario per Heroku
 
-# Connessione a TradingView
 tv = TvDatafeed()
 
 # Layout principale dell'app
-# - Includiamo il layout di ricerca (autocomplete) definito in ricerca.py
-# - Aggiungiamo il bottone "Analizza"
-# - Aggiungiamo i grafici e i messaggi
 app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'padding': '20px'}, children=[
 
     html.H1("QUANT-REA: Analisi Volatilità Asset", style={'textAlign': 'center', 'color': 'cyan'}),
 
-    # Layout di ricerca (input+dropdown) importato da ricerca.py
-    get_search_layout(),
+    # Layout di ricerca importato da ricerca.py
+    # Ricorda di settare il colore del testo nel dropdown a nero
+    get_search_layout(),  # Qui dentro c'è l'html con 'search-input' + 'search-dropdown'
 
-    # Bottone per avviare l'analisi
+    # Bottone “Analizza”
     html.Button("Analizza", id='analyze-button', n_clicks=0,
                 style={'marginLeft': '10px', 'backgroundColor': 'cyan'}),
 
     # Messaggi di avviso e caricamento
-    html.Div(id='ticker-warning', style={'color': 'red', 'marginTop': '5px', 'textAlign': 'center'}),
-    html.Div(id='loading-message', style={'color': 'yellow', 'marginTop': '10px',
-                                          'fontSize': '16px', 'fontWeight': 'bold', 'textAlign': 'center'}),
+    html.Div(id='ticker-warning',
+             style={'color': 'red', 'marginTop': '5px', 'textAlign': 'center'}),
+    html.Div(id='loading-message',
+             style={'color': 'yellow', 'marginTop': '10px', 'fontSize': '16px',
+                    'fontWeight': 'bold', 'textAlign': 'center'}),
 
     # Grafici
     dcc.Graph(id='grafico-rendimento-giornaliero'),
@@ -48,14 +48,6 @@ app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'pa
 register_search_callbacks(app)
 
 def get_asset_data(ticker):
-    """
-    Scarica i dati dal ticker TradingView selezionato (es. NASDAQ:AAPL).
-    Calcola rendimenti e volatilità, restituendo un DataFrame con le colonne:
-    - Rendimento_Giornaliero
-    - Rendimento_Settimanale
-    - Rendimento_Mensile
-    - Volatilità_Giornaliera
-    """
     try:
         exchange, symbol = ticker.split(":") if ":" in ticker else ("", ticker)
         asset_data = tv.get_hist(symbol=symbol, exchange=exchange,
@@ -75,7 +67,7 @@ def get_asset_data(ticker):
     except Exception as e:
         return None
 
-# Callback per avviare l'analisi quando si preme il bottone "Analizza"
+# Callback per generare i grafici quando si preme "Analizza"
 @app.callback(
     [
         dd.Output('grafico-rendimento-giornaliero', 'figure'),
@@ -89,17 +81,14 @@ def get_asset_data(ticker):
     [dd.State('search-dropdown', 'value')]
 )
 def update_graphs(n_clicks, selected_ticker):
-    """
-    1) Se n_clicks=0, non aggiorna nulla (prima apertura).
-    2) Se non c'è un ticker selezionato nel dropdown, avvisa l'utente.
-    3) Altrimenti scarica i dati e costruisce i grafici.
-    """
     if n_clicks == 0:
+        # Primo avvio, nessun grafico
         return (go.Figure(), go.Figure(), go.Figure(), go.Figure(), "", "")
 
     loading_message = "🔄 Scaricamento dati, attendere..."
 
     if not selected_ticker:
+        # Se l'utente non ha selezionato niente dal dropdown
         return (go.Figure(), go.Figure(), go.Figure(), go.Figure(),
                 "⚠️ Seleziona un ticker dalla lista!", "")
 
@@ -108,7 +97,6 @@ def update_graphs(n_clicks, selected_ticker):
         return (go.Figure(), go.Figure(), go.Figure(), go.Figure(),
                 f"⚠️ Ticker '{selected_ticker}' non valido.", "")
 
-    # Se arrivo qui, ho i dati
     warning_message = ""
     # Grafico Giornaliero
     fig_giornaliero = go.Figure(data=[
@@ -171,8 +159,7 @@ def update_graphs(n_clicks, selected_ticker):
         font=dict(color='white')
     )
 
-    return (fig_giornaliero, fig_settimanale, fig_mensile,
-            fig_vol, warning_message, "")
+    return (fig_giornaliero, fig_settimanale, fig_mensile, fig_vol, warning_message, "")
 
 if __name__ == '__main__':
     app.run_server(debug=True)
