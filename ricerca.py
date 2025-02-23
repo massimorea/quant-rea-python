@@ -1,56 +1,69 @@
-import pandas as pd
 import dash_core_components as dcc
 import dash_html_components as html
 import dash.dependencies as dd
+import pandas as pd
 
-# Carica il CSV con i ticker
-df_tickers = pd.read_csv("all_ticker.csv", dtype=str)
+def load_tickers_from_csv(path="all_tickers.csv"):
+    """
+    Legge un CSV con le colonne: [Mercato, Ticker, Descrizione, Exchange]
+    e restituisce un DataFrame.
+    """
+    df = pd.read_csv(path)
+    return df
 
 def get_search_layout():
-    """Ritorna il layout per la ricerca con input e dropdown."""
+    """
+    Restituisce un layout con un UNICO dropdown 'searchable' che
+    verrà popolato dinamicamente solo dopo aver digitato almeno 3 caratteri.
+    """
     return html.Div([
-        html.Label("Digita almeno 3 caratteri per cercare un ticker:", style={'color': 'white'}),
-        dcc.Input(id='search-input', type='text', value='', debounce=True, placeholder="Es. AAPL, BTC, EURUSD",
-                  style={'marginLeft': '10px', 'width': '250px'}),
+        html.Label("Seleziona un Ticker:", style={'color': 'white'}),
         dcc.Dropdown(
             id='search-dropdown',
-            options=[],  # Inizialmente vuoto
+            options=[],  # Le opzioni verranno caricate dinamicamente via callback
             value=None,
-            placeholder="Seleziona un ticker",
-            clearable=True,
-            style={'width': '300px', 'display': 'inline-block', 'marginLeft': '10px', 'backgroundColor': 'white', 'color': 'black'}
+            placeholder="Digita almeno 3 caratteri per cercare...",
+            clearable=False,  # Il valore selezionato rimane
+            searchable=True,
+            style={
+                'width': '400px',
+                'color': 'black',          # Testo interno nero
+                'backgroundColor': 'white' # Sfondo bianco
+            }
         ),
-        html.Div(id='search-status', style={'color': 'yellow', 'marginTop': '10px'})  # Stato della ricerca
+        html.Div(id='search-status', style={'color': 'yellow', 'marginTop': '5px', 'textAlign': 'center'})
     ], style={'textAlign': 'center', 'marginBottom': '20px'})
 
-
 def register_search_callbacks(app):
-    """Registra il callback per aggiornare il dropdown filtrando i ticker."""
-    
+    """
+    Registra il callback per aggiornare dinamicamente le opzioni del dropdown.
+    Carica il CSV solo se l'utente ha digitato almeno 3 caratteri.
+    """
     @app.callback(
         [dd.Output('search-dropdown', 'options'),
          dd.Output('search-status', 'children')],
-        [dd.Input('search-input', 'value')]
+        [dd.Input('search-dropdown', 'search_value')]
     )
     def update_dropdown_options(search_value):
         if not search_value or len(search_value) < 3:
-            return [], "🔎 Digita almeno 3 caratteri per cercare un ticker."
-        
-        filtered = df_tickers[
-            df_tickers['Ticker'].str.contains(search_value.upper(), na=False) |
-            df_tickers['Descrizione'].str.contains(search_value.upper(), na=False)
-        ]
-
-        options = [{'label': f"{row['Ticker']} - {row['Descrizione']} ({row['Exchange']})", 'value': row['Ticker']}
-                   for _, row in filtered.iterrows()]
-
-        return options, "✅ Seleziona un asset dalla lista."
-
-    @app.callback(
-        dd.Output('search-input', 'value'),
-        [dd.Input('search-dropdown', 'value')]
-    )
-    def update_input_with_selected_ticker(selected_ticker):
-        """Quando selezioni un ticker, lo mostra nel campo di input."""
-        return selected_ticker if selected_ticker else ""
-
+            # Se il testo è vuoto o meno di 3 caratteri, non restituisce opzioni
+            return [], "Digita almeno 3 caratteri per cercare..."
+        # Carica il CSV in questo callback (on-demand)
+        df = load_tickers_from_csv()
+        # Filtra solo per i campi Ticker e Descrizione (case-insensitive)
+        mask = (
+            df['Ticker'].str.contains(search_value, case=False, na=False) |
+            df['Descrizione'].str.contains(search_value, case=False, na=False)
+        )
+        filtered_df = df[mask]
+        if filtered_df.empty:
+            return [], "⚠️ Nessun risultato trovato."
+        options = []
+        for _, row in filtered_df.iterrows():
+            ticker = str(row['Ticker'])
+            descr = str(row['Descrizione'])
+            exch  = str(row['Exchange'])
+            label = f"{ticker} - {descr} ({exch})"
+            value = f"{exch}:{ticker}"
+            options.append({'label': label, 'value': value})
+        return options, ""
