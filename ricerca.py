@@ -2,6 +2,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash.dependencies as dd
 import pandas as pd
+import dash
 
 def load_tickers_from_csv(path="all_tickers.csv"):
     """ Carica il CSV con i ticker. """
@@ -21,7 +22,6 @@ def get_search_layout():
             style={'width': '700px', 'color': 'black', 'backgroundColor': 'white', 'margin': 'auto'}
         ),
         html.Div(id='search-status', style={'color': 'yellow', 'marginTop': '5px', 'textAlign': 'center'}),
-        # Spostiamo l'input hidden qui
         html.Label("se hai il ticker esatto:", style={'color': 'white'}),
         dcc.Input(
             id='selected-ticker',
@@ -40,7 +40,10 @@ def register_search_callbacks(app):
         [dd.Input('search-dropdown', 'search_value')]
     )
     def update_dropdown_options(search_value):
+        print(f"🔍 DEBUG search_value ricevuto: {search_value}")
+        
         if not search_value or len(search_value) < 3:
+            print("⚠️ DEBUG: search_value < 3 caratteri")
             return [], "Digita almeno 3 caratteri per cercare..."
         
         df = load_tickers_from_csv()
@@ -49,24 +52,36 @@ def register_search_callbacks(app):
         filtered_df = df[mask]
         
         if filtered_df.empty:
+            print("❌ DEBUG: Nessun risultato trovato")
             return [], "⚠️ Nessun risultato trovato."
         
         options = [{'label': f"{row['Ticker']} - {row['Descrizione']} ({row['Exchange']})", 
                     'value': f"{row['Exchange']}:{row['Ticker']}"} for _, row in filtered_df.iterrows()]
+        print(f"✅ DEBUG: Generati {len(options)} opzioni per la ricerca")
         return options, ""
 
     @app.callback(
         [dd.Output('selected-ticker', 'value'),
-         dd.Output('search-dropdown', 'value')],  # Aggiungiamo questo output
+         dd.Output('search-dropdown', 'value')],
         [dd.Input('search-dropdown', 'value')],
         [dd.State('selected-ticker', 'value')],
         prevent_initial_call=True
     )
     def update_selected_ticker(dropdown_value, current_value):
-        if dropdown_value is None or dropdown_value.strip() == "":
-            # Mantieni il valore corrente se il dropdown è vuoto
+        # Ottieni informazioni sul trigger del callback
+        ctx = dash.callback_context
+        trigger = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
+        print(f"🎯 DEBUG Trigger: {trigger}")
+        print(f"📥 DEBUG Dropdown value ricevuto: {dropdown_value}")
+        print(f"💾 DEBUG Valore corrente in selected-ticker: {current_value}")
+
+        if dropdown_value is None:
+            print("⚠️ DEBUG: Dropdown value è None")
             return current_value or "", current_value or ""
             
-        print(f"🔍 DEBUG: Nuovo ticker selezionato: {dropdown_value}")
-        # Aggiorna sia selected-ticker che mantieni il valore nel dropdown
+        if isinstance(dropdown_value, str) and dropdown_value.strip() == "":
+            print("⚠️ DEBUG: Dropdown value è stringa vuota")
+            return current_value or "", current_value or ""
+            
+        print(f"✅ DEBUG: Aggiornamento valori - dropdown: {dropdown_value}")
         return dropdown_value, dropdown_value
