@@ -57,4 +57,4 @@ def register_search_callbacks(app):
         [dd.State('selected-ticker', 'value')]
     )
     def update_selected_ticker(value, current_ticker):
-        return value or current_ticker, value or current_ticker  # ✅ Evita il reset
+        return value #or current_ticker, value or current_ticker  # ✅ Evita il reset
