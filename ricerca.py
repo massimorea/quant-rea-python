@@ -12,7 +12,6 @@ def get_search_layout():
     """ Layout con dropdown per la ricerca. """
     return html.Div([
         html.Label("Seleziona un Asset Ticker / Nome dell'azienda:", style={'color': 'white'}),
-        dcc.Store(id='ticker-store', storage_type='memory'),
         dcc.Dropdown(
             id='search-dropdown',
             options=[],
@@ -34,8 +33,6 @@ def get_search_layout():
     ], style={'textAlign': 'center', 'marginBottom': '20px'})
 
 def register_search_callbacks(app):
-    """ Callback per aggiornare il dropdown e salvare il ticker selezionato. """
-    
     @app.callback(
         [dd.Output('search-dropdown', 'options'),
          dd.Output('search-status', 'children')],
@@ -57,38 +54,33 @@ def register_search_callbacks(app):
         
         options = [{'label': f"{row['Ticker']} - {row['Descrizione']} ({row['Exchange']})", 
                     'value': f"{row['Exchange']}:{row['Ticker']}"} for _, row in filtered_df.iterrows()]
+        print(f"📊 DEBUG: Generati {len(options)} opzioni per la ricerca")
         return options, ""
 
     @app.callback(
-        dd.Output('selected-ticker', 'value'),
+        [dd.Output('selected-ticker', 'value'),
+         dd.Output('debug-info', 'children')],
         [dd.Input('search-dropdown', 'value')],
-        prevent_initial_call=True
+        [dd.State('selected-ticker', 'value')]
     )
-    def update_selected_ticker(dropdown_value):
-        print(f"📝 DEBUG update_selected_ticker - dropdown_value: {dropdown_value}")
+    def update_selected_ticker(dropdown_value, current_value):
+        print(f"📝 DEBUG update_selected_ticker - dropdown_value: {dropdown_value}, current_value: {current_value}")
         
-        # Se il valore è None, non fare nulla
         if dropdown_value is None:
-            raise PreventUpdate
-            
-        # Se il valore è una stringa vuota, non fare nulla
-        if isinstance(dropdown_value, str) and dropdown_value.strip() == "":
-            raise PreventUpdate
-            
-        print(f"✅ Impostando selected-ticker a: {dropdown_value}")
-        return dropdown_value
+            # Mantieni il valore corrente se il dropdown è None
+            print("⚠️ DEBUG: Dropdown value è None, mantengo valore corrente")
+            return current_value or "", f"Mantenuto valore corrente: {current_value}"
+        
+        print(f"✅ DEBUG: Aggiornamento ticker a {dropdown_value}")
+        return dropdown_value, f"Ticker selezionato: {dropdown_value}"
 
     @app.callback(
         dd.Output('search-dropdown', 'value'),
         [dd.Input('selected-ticker', 'value')],
-        [dd.State('search-dropdown', 'value')],
         prevent_initial_call=True
     )
-    def sync_dropdown_from_input(manual_value, current_dropdown_value):
-        print(f"🔄 DEBUG sync_dropdown - manual: {manual_value}, current_dropdown: {current_dropdown_value}")
-        
-        # Se il valore manuale è vuoto o None, mantieni il valore corrente del dropdown
+    def handle_manual_input(manual_value):
+        print(f"✍️ DEBUG handle_manual_input - manual_value: {manual_value}")
         if not manual_value:
-            return current_dropdown_value or ""
-            
+            raise PreventUpdate
         return manual_value
