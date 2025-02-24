@@ -24,7 +24,7 @@ app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'pa
     get_search_layout(),
 
     # Input nascosto per memorizzare il ticker selezionato
-    dcc.Input(id='selected-ticker', type='text', value="", style={'display': 'online','backgroundColor': 'grey'}),
+    dcc.Input(id='selected-ticker', type='text', value="", style={'display': 'none','backgroundColor': 'grey'}),
 
     html.Div(id='loading-message', style={'color': 'yellow', 'marginTop': '10px', 'textAlign': 'center'}),
 
