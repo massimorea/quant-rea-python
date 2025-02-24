@@ -10,7 +10,7 @@ def load_tickers_from_csv(path="all_tickers.csv"):
 def get_search_layout():
     """ Layout con dropdown per la ricerca. """
     return html.Div([
-        html.Label("Seleziona un Ticker:", style={'color': 'white'}),
+        html.Label("Seleziona un Asset Ticker / Nome dell'azienda:", style={'color': 'white'}),
         dcc.Dropdown(
             id='search-dropdown',
             options=[],
@@ -22,6 +22,7 @@ def get_search_layout():
         ),
         html.Div(id='search-status', style={'color': 'yellow', 'marginTop': '5px', 'textAlign': 'center'}),
         # Spostiamo l'input hidden qui
+        html.Label("se hai il ticker esatto:", style={'color': 'white'}),
         dcc.Input(
             id='selected-ticker',
             type='text',
