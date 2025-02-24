@@ -1,5 +1,6 @@
 dash
 dash-core-components
+dash-bootstrap-components
 dash-html-components
 flask-cors
 redis
