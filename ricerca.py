@@ -18,8 +18,10 @@ def get_search_layout():
             options=[],
             value=None,
             placeholder="Digita almeno 3 caratteri per cercare...",
-            clearable=True,
+            clearable=False,  # Cambiato a False
             searchable=True,
+            persistence=True,  # Aggiunto persistence
+            persistence_type='session',
             style={'width': '700px', 'color': 'black', 'backgroundColor': 'white', 'margin': 'auto'}
         ),
         html.Div(id='search-status', style={'color': 'yellow', 'marginTop': '5px', 'textAlign': 'center'}),
@@ -28,6 +30,8 @@ def get_search_layout():
             id='selected-ticker',
             type='text',
             value="",
+            persistence=True,  # Aggiunto persistence
+            persistence_type='session',
             style={'display': 'inline-block', 'backgroundColor': 'grey'}
         ),
         html.Div(id='debug-info', style={'color': 'yellow', 'fontSize': '12px', 'marginTop': '5px'})
@@ -55,42 +59,56 @@ def register_search_callbacks(app):
         
         options = [{'label': f"{row['Ticker']} - {row['Descrizione']} ({row['Exchange']})", 
                     'value': f"{row['Exchange']}:{row['Ticker']}"} for _, row in filtered_df.iterrows()]
-        print(f"📊 DEBUG: Generati {len(options)} opzioni per la ricerca")
+        print(f"📊 DEBUG: Generati {len(options)} opzioni")
         return options, ""
 
     @app.callback(
         [dd.Output('selected-ticker', 'value'),
          dd.Output('debug-info', 'children')],
-        [dd.Input('search-dropdown', 'value'),
-         dd.Input('search-dropdown', 'options')],  # Aggiungiamo options come input
+        [dd.Input('search-dropdown', 'value')],
+        [dd.State('selected-ticker', 'value')],
         prevent_initial_call=True
     )
-    def update_selected_ticker(dropdown_value, options):
-        # Identifichiamo quale input ha triggato il callback
+    def update_selected_ticker(dropdown_value, current_value):
         ctx = dash.callback_context
-        trigger_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
-        
-        print(f"🎯 DEBUG Trigger: {trigger_id}")
-        print(f"📝 DEBUG Dropdown value: {dropdown_value}")
-        print(f"🔢 DEBUG Options count: {len(options) if options else 0}")
-
-        if dropdown_value:
-            print(f"✅ DEBUG: Selezionato nuovo valore: {dropdown_value}")
-            return dropdown_value, f"Ticker selezionato: {dropdown_value}"
-        
-        # Se non c'è un valore ma ci sono opzioni, manteniamo lo stato corrente
-        if options and len(options) > 0:
+        if not ctx.triggered:
+            print("⚠️ DEBUG: Nessun trigger")
             raise PreventUpdate
+            
+        trigger = ctx.triggered[0]
+        print(f"🎯 DEBUG Trigger: {trigger['prop_id']}")
+        print(f"📝 DEBUG Dropdown value: {dropdown_value}")
+        print(f"📝 DEBUG Current value: {current_value}")
 
+        # Se il dropdown ha un valore valido, usalo
+        if dropdown_value:
+            print(f"✅ DEBUG: Nuovo valore dal dropdown: {dropdown_value}")
+            return dropdown_value, f"Ticker selezionato: {dropdown_value}"
+            
+        # Se il dropdown è None ma abbiamo un valore corrente, mantienilo
+        if current_value:
+            print(f"🔄 DEBUG: Mantengo valore corrente: {current_value}")
+            return current_value, f"Ticker mantenuto: {current_value}"
+            
+        print("⚠️ DEBUG: Nessun valore valido")
         return "", "In attesa di selezione..."
 
+    # Callback per sincronizzare il dropdown con l'input manuale
     @app.callback(
         dd.Output('search-dropdown', 'value'),
         [dd.Input('selected-ticker', 'value')],
+        [dd.State('search-dropdown', 'value')],
         prevent_initial_call=True
     )
-    def handle_manual_input(manual_value):
-        print(f"✍️ DEBUG handle_manual_input - manual_value: {manual_value}")
-        if not manual_value:
-            raise PreventUpdate
-        return manual_value
+    def sync_dropdown_with_input(manual_value, current_dropdown):
+        print(f"✍️ DEBUG sync_dropdown - manual: {manual_value}, current: {current_dropdown}")
+        
+        if not manual_value and current_dropdown:
+            print(f"🔄 DEBUG: Mantengo valore dropdown: {current_dropdown}")
+            return current_dropdown
+            
+        if manual_value:
+            print(f"✅ DEBUG: Aggiorno dropdown con: {manual_value}")
+            return manual_value
+            
+        raise PreventUpdate
