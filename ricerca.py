@@ -1,6 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 import dash.dependencies as dd
+from dash.exceptions import PreventUpdate
 import pandas as pd
 
 def load_tickers_from_csv(path="all_tickers.csv"):
@@ -11,6 +12,7 @@ def get_search_layout():
     """ Layout con dropdown per la ricerca. """
     return html.Div([
         html.Label("Seleziona un Asset Ticker / Nome dell'azienda:", style={'color': 'white'}),
+        dcc.Store(id='ticker-store', storage_type='memory'),  # Aggiungiamo uno store
         dcc.Dropdown(
             id='search-dropdown',
             options=[],
@@ -28,13 +30,10 @@ def get_search_layout():
             value="",
             style={'display': 'inline-block', 'backgroundColor': 'grey'}
         ),
-        # Debug info
         html.Div(id='debug-info', style={'color': 'yellow', 'fontSize': '12px', 'marginTop': '5px'})
     ], style={'textAlign': 'center', 'marginBottom': '20px'})
 
 def register_search_callbacks(app):
-    """ Callback per aggiornare il dropdown e salvare il ticker selezionato. """
-    
     @app.callback(
         [dd.Output('search-dropdown', 'options'),
          dd.Output('search-status', 'children')],
@@ -57,19 +56,37 @@ def register_search_callbacks(app):
         return options, ""
 
     @app.callback(
-        [dd.Output('selected-ticker', 'value'),
-         dd.Output('debug-info', 'children')],
+        dd.Output('ticker-store', 'data'),
         [dd.Input('search-dropdown', 'value')],
         prevent_initial_call=True
     )
-    def update_selected_ticker(dropdown_value):
-        print(f"🔍 DEBUG: Dropdown value ricevuto: {dropdown_value}")  # Debug print
-        
-        if dropdown_value is None:
-            return "", "Nessun valore selezionato"
+    def store_selected_value(value):
+        if value is None:
+            raise PreventUpdate
+        print(f"🔍 Salvando nel store: {value}")
+        return value
+
+    @app.callback(
+        [dd.Output('selected-ticker', 'value'),
+         dd.Output('debug-info', 'children')],
+        [dd.Input('ticker-store', 'data')],
+        prevent_initial_call=True
+    )
+    def update_selected_ticker(stored_value):
+        if stored_value is None:
+            raise PreventUpdate
             
-        if dropdown_value.strip() == "":
-            return "", "Valore vuoto ricevuto"
-            
-        debug_msg = f"Valore selezionato: {dropdown_value}"
-        return dropdown_value, debug_msg
+        print(f"📍 Aggiornando selected-ticker con: {stored_value}")
+        return stored_value, f"Ticker selezionato: {stored_value}"
+
+    # Callback per gestire l'input manuale
+    @app.callback(
+        dd.Output('ticker-store', 'data', allow_duplicate=True),
+        [dd.Input('selected-ticker', 'value')],
+        prevent_initial_call=True
+    )
+    def handle_manual_input(manual_value):
+        if not manual_value:
+            raise PreventUpdate
+        print(f"✍️ Input manuale: {manual_value}")
+        return manual_value
