@@ -16,11 +16,18 @@ def get_search_layout():
             options=[],
             value=None,
             placeholder="Digita almeno 3 caratteri per cercare...",
-            clearable=True,  # Cambiato da False a True
+            clearable=True,
             searchable=True,
             style={'width': '700px', 'color': 'black', 'backgroundColor': 'white', 'margin': 'auto'}
         ),
         html.Div(id='search-status', style={'color': 'yellow', 'marginTop': '5px', 'textAlign': 'center'}),
+        # Spostiamo l'input hidden qui
+        dcc.Input(
+            id='selected-ticker',
+            type='text',
+            value="",
+            style={'display': 'online'}
+        ),
     ], style={'textAlign': 'center', 'marginBottom': '20px'})
 
 def register_search_callbacks(app):
@@ -48,20 +55,12 @@ def register_search_callbacks(app):
         return options, ""
 
     @app.callback(
-        [dd.Output('selected-ticker', 'value'),
-         dd.Output('search-dropdown', 'value')],
-        [dd.Input('search-dropdown', 'value')],
-        [dd.State('selected-ticker', 'value')],
+        dd.Output('selected-ticker', 'value'),
+        dd.Input('search-dropdown', 'value'),
         prevent_initial_call=True
     )
-    def update_selected_ticker(dropdown_value, current_ticker):
-        if dropdown_value is None:
-            # Se il dropdown è vuoto, mantieni l'ultimo valore valido
-            return current_ticker or "", current_ticker or ""
-        
-        # Assicurati che il valore non sia vuoto
-        if dropdown_value.strip() == "":
-            return current_ticker or "", current_ticker or ""
-            
-        print(f"🔍 DEBUG: Aggiornamento ticker da {current_ticker} a {dropdown_value}")
-        return dropdown_value, dropdown_value
+    def update_selected_ticker(dropdown_value):
+        if dropdown_value is None or dropdown_value.strip() == "":
+            return ""
+        print(f"🔍 DEBUG: Nuovo ticker selezionato: {dropdown_value}")
+        return dropdown_value
