@@ -1,13 +1,12 @@
 import os
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import html, dcc  # Modificato qui
 import dash.dependencies as dd
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from tvDatafeed import TvDatafeed, Interval
-from ricerca import get_search_layout, register_search_callbacks  # Importa ricerca.py
+from ricerca import get_search_layout, register_search_callbacks
 
 # Inizializzazione dell'app Dash
 app = dash.Dash(__name__, server=False)
@@ -21,9 +20,6 @@ layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'paddin
 
     # Sezione di ricerca con valore selezionato
     get_search_layout(),
-
-    # Input nascosto per memorizzare il ticker selezionato
-    #dcc.Input(id='selected-ticker', type='text', value="", style={'display': 'online', 'backgroundColor': 'grey'}),
 
     # Messaggio di caricamento AJAX
     html.Div(id='loading-message', style={'color': 'yellow', 'marginTop': '10px', 'textAlign': 'center', 'display': 'none'}),
@@ -54,7 +50,7 @@ layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'paddin
                 
                 setTimeout(() => {
                     loadingMessage.style.display = "none";
-                }, 5000);  // Nasconde il messaggio dopo 5 secondi
+                }, 5000);
             });
         });
     ''')
@@ -66,7 +62,7 @@ app.layout = layout
 def get_asset_data(ticker):
     try:
         if not ticker:
-            return None  # Se non c'è un ticker selezionato, non caricare dati
+            return None
 
         exchange, symbol = ticker.split(":") if ":" in ticker else ("", ticker)
         asset_data = tv.get_hist(symbol=symbol, exchange=exchange, interval=Interval.in_daily, n_bars=100000)
@@ -81,6 +77,7 @@ def get_asset_data(ticker):
 
         return asset_data
     except Exception as e:
+        print(f"Errore nel recupero dati: {str(e)}")  # Aggiunto log dell'errore
         return None
 
 # Callback per aggiornare automaticamente i grafici dopo la selezione del ticker
@@ -89,7 +86,7 @@ def get_asset_data(ticker):
      dd.Output('grafico-rendimento-settimanale', 'figure'),
      dd.Output('grafico-rendimento-mensile', 'figure'),
      dd.Output('grafico-volatilita', 'figure')],
-    [dd.Input('selected-ticker', 'value')]  # Usa il valore selezionato dalla ricerca
+    [dd.Input('selected-ticker', 'value')]
 )
 def update_graphs(ticker):
     if not ticker:
@@ -132,3 +129,8 @@ def update_graphs(ticker):
 
 # Registra le funzioni di ricerca
 register_search_callbacks(app)
+
+if __name__ == '__main__':
+    # Aggiungiamo questa parte per il worker
+    port = int(os.environ.get("PORT", 5000))
+    app.run_server(host='0.0.0.0', port=port)
