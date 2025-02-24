@@ -5,11 +5,15 @@ import os
 
 # Inizializzazione del server Flask e Dash
 server = Flask(__name__)
-app = dash.Dash(__name__, server=server, url_base_pathname='/')
+app = dash.Dash(__name__, server=server)
+
+# Importa le app dei worker
+import rendimenti_volatilita
+import rendimenti_asset
 
 # Layout base di Dash
 app.layout = html.Div([
-    dcc.Location(id='url', refresh=True),  # Refresh=True per ricaricare completamente la pagina
+    dcc.Location(id='url', refresh=False),
     html.Div(id='page-content')
 ])
 
@@ -24,23 +28,22 @@ def display_page(pathname):
             html.H1('QUANT-REA Dashboard'),
             html.P('Seleziona un\'analisi:'),
             html.Div([
-                html.A('Analisi Asset', href='/asset', className='button'),
+                dcc.Link('Analisi Asset', href='/asset'),
                 html.Br(),
-                html.A('Analisi Volatilità', href='/volatilita', className='button')
+                dcc.Link('Analisi Volatilità', href='/volatilita')
             ])
         ])
     elif pathname == '/asset':
-        # Reindirizza all'app asset
-        from rendimenti_asset import app as asset_app
-        return asset_app.layout
+        return rendimenti_asset.layout
     elif pathname == '/volatilita':
-        # Reindirizza all'app volatilità
-        from rendimenti_volatilita import app as vol_app
-        return vol_app.layout
+        return rendimenti_volatilita.layout
     else:
-        return html.H1('404 - Pagina non trovata')
+        return '404 - Pagina non trovata'
 
-# Configurazione del server
+# Registra i callback delle altre app
+app.callback_map.update(rendimenti_volatilita.app.callback_map)
+app.callback_map.update(rendimenti_asset.app.callback_map)
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    server.run(host='0.0.0.0', port=port)
+    app.run_server(host='0.0.0.0', port=port)
