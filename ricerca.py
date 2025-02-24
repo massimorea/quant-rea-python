@@ -55,12 +55,17 @@ def register_search_callbacks(app):
         return options, ""
 
     @app.callback(
-        dd.Output('selected-ticker', 'value'),
-        dd.Input('search-dropdown', 'value'),
+        [dd.Output('selected-ticker', 'value'),
+         dd.Output('search-dropdown', 'value')],  # Aggiungiamo questo output
+        [dd.Input('search-dropdown', 'value')],
+        [dd.State('selected-ticker', 'value')],
         prevent_initial_call=True
     )
-    def update_selected_ticker(dropdown_value):
+    def update_selected_ticker(dropdown_value, current_value):
         if dropdown_value is None or dropdown_value.strip() == "":
-            return ""
+            # Mantieni il valore corrente se il dropdown è vuoto
+            return current_value or "", current_value or ""
+            
         print(f"🔍 DEBUG: Nuovo ticker selezionato: {dropdown_value}")
-        return dropdown_value
+        # Aggiorna sia selected-ticker che mantieni il valore nel dropdown
+        return dropdown_value, dropdown_value
