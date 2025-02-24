@@ -13,18 +13,14 @@ def get_search_layout():
         html.Label("Seleziona un Ticker:", style={'color': 'white'}),
         dcc.Dropdown(
             id='search-dropdown',
-            options=[],  # Verrà aggiornato dinamicamente
-            #value=None,  # Il valore selezionato rimane
+            options=[],
+            value=None,
             placeholder="Digita almeno 3 caratteri per cercare...",
-            clearable=False,
+            clearable=True,  # Cambiato da False a True
             searchable=True,
             style={'width': '700px', 'color': 'black', 'backgroundColor': 'white', 'margin': 'auto'}
         ),
         html.Div(id='search-status', style={'color': 'yellow', 'marginTop': '5px', 'textAlign': 'center'}),
-        
-
-        # ✅ Mantiene il ticker selezionato
-        #dcc.Input(id='selected-ticker', type='text', value="", style={'display': 'online'})
     ], style={'textAlign': 'center', 'marginBottom': '20px'})
 
 def register_search_callbacks(app):
@@ -51,15 +47,21 @@ def register_search_callbacks(app):
                     'value': f"{row['Exchange']}:{row['Ticker']}"} for _, row in filtered_df.iterrows()]
         return options, ""
 
-    # ✅ Callback per aggiornare `selected-ticker` e impedire reset
     @app.callback(
         [dd.Output('selected-ticker', 'value'),
-         dd.Output('search-dropdown', 'value')],  # ✅ Mantiene il valore selezionato nel dropdown
+         dd.Output('search-dropdown', 'value')],
         [dd.Input('search-dropdown', 'value')],
-        [dd.State('selected-ticker', 'value')]
+        [dd.State('selected-ticker', 'value')],
+        prevent_initial_call=True
     )
-    def update_selected_ticker(value, current_ticker):
-        print(f"🔍 DEBUG: Valore selezionato nel dropdown: {value}")  # LOG AGGIUNTO
-        if value is None or value == "":
-            return current_ticker, current_ticker  # ✅ Mantiene l'ultimo valore selezionato se non cambia
-        return value, value  # ✅ Salva il valore selezionato sia nel dropdown che in `selected-ticker`
+    def update_selected_ticker(dropdown_value, current_ticker):
+        if dropdown_value is None:
+            # Se il dropdown è vuoto, mantieni l'ultimo valore valido
+            return current_ticker or "", current_ticker or ""
+        
+        # Assicurati che il valore non sia vuoto
+        if dropdown_value.strip() == "":
+            return current_ticker or "", current_ticker or ""
+            
+        print(f"🔍 DEBUG: Aggiornamento ticker da {current_ticker} a {dropdown_value}")
+        return dropdown_value, dropdown_value
