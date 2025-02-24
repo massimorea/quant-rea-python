@@ -1,89 +1,92 @@
+import dash
+from dash import html, dcc
 from flask import Flask, request, jsonify
-import redis
-from rq import Queue
 import os
+from urllib.parse import urlparse, parse_qs
 
-# Inizializzazione Flask app
-app = Flask(__name__)
+# Inizializzazione del server Flask e Dash
+server = Flask(__name__)
+app = dash.Dash(__name__, server=server, url_base_pathname='/')
 
-# Configurazione Redis
-# Usa URL di Redis da variabile ambiente o default locale
-REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379')
-redis_conn = redis.from_url(REDIS_URL)
+# Layout base di Dash
+app.layout = html.Div([
+    dcc.Location(id='url', refresh=False),
+    html.Div(id='page-content')
+])
 
-# Creazione code per i diversi worker
-asset_queue = Queue('asset', connection=redis_conn)
-volatilita_queue = Queue('volatilita', connection=redis_conn)
+# Callback per gestire il routing
+@app.callback(
+    dash.dependencies.Output('page-content', 'children'),
+    [dash.dependencies.Input('url', 'pathname')]
+)
+def display_page(pathname):
+    if pathname == '/':
+        return html.Div([
+            html.H1('QUANT-REA Dashboard'),
+            html.P('Seleziona un\'analisi:'),
+            dcc.Link('Analisi Asset', href='/asset'),
+            html.Br(),
+            dcc.Link('Analisi Volatilità', href='/volatilita')
+        ])
+    elif pathname == '/asset':
+        # Importa e ritorna il layout dell'app asset
+        from rendimenti_asset import app as asset_app
+        return asset_app.layout
+    elif pathname == '/volatilita':
+        # Importa e ritorna il layout dell'app volatilità
+        from rendimenti_volatilita import app as vol_app
+        return vol_app.layout
+    else:
+        return '404 - Pagina non trovata'
 
-@app.route('/')
-def home():
-    return jsonify({
-        "status": "online",
-        "endpoints": {
-            "/asset": "Analisi asset",
-            "/volatilita": "Analisi volatilità"
-        }
-    })
-
-@app.route('/asset', methods=['POST'])
-def process_asset():
+# Route per l'API REST
+@server.route('/api/asset', methods=['POST'])
+def api_asset():
     try:
         data = request.get_json()
         if not data or 'ticker' not in data:
-            return jsonify({"error": "Ticker non specificato"}), 400
+            return jsonify({'error': 'Ticker non specificato'}), 400
         
-        # Invia il job alla coda asset
-        job = asset_queue.enqueue('rendimenti_asset.py', data['ticker'])
-        
+        # Qui puoi aggiungere la logica per processare l'asset
+        # Per esempio, chiamare funzioni dal tuo rendimenti-asset.py
         return jsonify({
-            "status": "success",
-            "job_id": job.id,
-            "message": f"Analisi asset avviata per {data['ticker']}"
+            'status': 'success',
+            'message': f'Analisi asset avviata per {data["ticker"]}'
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/volatilita', methods=['POST'])
-def process_volatilita():
+@server.route('/api/volatilita', methods=['POST'])
+def api_volatilita():
     try:
         data = request.get_json()
         if not data or 'ticker' not in data:
-            return jsonify({"error": "Ticker non specificato"}), 400
+            return jsonify({'error': 'Ticker non specificato'}), 400
         
-        # Invia il job alla coda volatilità
-        job = volatilita_queue.enqueue('rendimenti_volatilita.py', data['ticker'])
-        
+        # Qui puoi aggiungere la logica per processare la volatilità
+        # Per esempio, chiamare funzioni dal tuo rendimenti-volatilita.py
         return jsonify({
-            "status": "success",
-            "job_id": job.id,
-            "message": f"Analisi volatilità avviata per {data['ticker']}"
+            'status': 'success',
+            'message': f'Analisi volatilità avviata per {data["ticker"]}'
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/status/<job_id>')
-def get_job_status(job_id):
-    try:
-        # Cerca il job in entrambe le code
-        job_asset = asset_queue.fetch_job(job_id)
-        job_vol = volatilita_queue.fetch_job(job_id)
-        
-        job = job_asset or job_vol
-        
-        if not job:
-            return jsonify({"error": "Job non trovato"}), 404
-            
-        status = {
-            "job_id": job.id,
-            "status": job.get_status(),
-            "result": job.result if job.is_finished else None,
-            "error": str(job.exc_info) if job.is_failed else None
-        }
-        
-        return jsonify(status)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+# Gestione degli errori
+@server.errorhandler(404)
+def not_found(e):
+    return jsonify({'error': 'Risorsa non trovata'}), 404
 
+@server.errorhandler(500)
+def server_error(e):
+    return jsonify({'error': 'Errore interno del server'}), 500
+
+# Configurazione del server
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 5000))
+    # In produzione (Heroku)
+    if os.environ.get("ENVIRONMENT") == "production":
+        server.run(host='0.0.0.0', port=port)
+    else:
+        # In sviluppo locale
+        app.run_server(debug=True, port=port)
