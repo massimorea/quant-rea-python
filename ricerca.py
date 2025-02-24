@@ -44,14 +44,27 @@ def register_search_callbacks(app):
         [dd.Output('search-dropdown', 'options'),
          dd.Output('search-status', 'children'),
          dd.Output('debug-dropdown-value', 'children')],
-        [dd.Input('search-dropdown', 'search_value')]
+        [dd.Input('search-dropdown', 'search_value')],
+        [dd.State('search-dropdown', 'options')]
     )
-    def update_dropdown_options(search_value):
+    def update_dropdown_options(search_value, current_options):
         ctx = dash.callback_context
         print(f"\n🔍 DEBUG update_dropdown_options - Timestamp: {datetime.now()}")
         print(f"🔍 DEBUG update_dropdown_options - Trigger completo: {ctx.triggered}")
         print(f"🔍 DEBUG update_dropdown_options - search_value: {search_value}")
+        print(f"🔍 DEBUG update_dropdown_options - opzioni correnti: {len(current_options) if current_options else 0}")
         
+        # Se non c'è valore di ricerca e abbiamo già delle opzioni, le manteniamo
+        if not search_value and current_options:
+            print("🔄 DEBUG: Mantengo le opzioni correnti")
+            return current_options, "", f"Mantenute {len(current_options)} opzioni correnti"
+        
+        # Se il valore di ricerca è troppo corto ma abbiamo opzioni, le manteniamo
+        if search_value and len(search_value) < 3 and current_options:
+            print("🔄 DEBUG: Mantengo le opzioni durante la digitazione")
+            return current_options, "Digita almeno 3 caratteri per cercare...", f"Mantenute {len(current_options)} opzioni correnti"
+        
+        # Se non abbiamo né ricerca valida né opzioni correnti
         if not search_value or len(search_value) < 3:
             return [], "Digita almeno 3 caratteri per cercare...", "Ricerca: attendo 3+ caratteri"
         
@@ -61,6 +74,10 @@ def register_search_callbacks(app):
         filtered_df = df[mask]
         
         if filtered_df.empty:
+            # Se non troviamo risultati ma abbiamo opzioni, manteniamo quelle
+            if current_options:
+                print("🔄 DEBUG: Mantengo le opzioni - nessun nuovo risultato")
+                return current_options, "⚠️ Nessun nuovo risultato trovato.", f"Mantenute {len(current_options)} opzioni correnti"
             return [], "⚠️ Nessun risultato trovato.", f"Nessun risultato per: {search_value}"
         
         options = [{'label': f"{row['Ticker']} - {row['Descrizione']} ({row['Exchange']})", 
@@ -111,7 +128,6 @@ def register_search_callbacks(app):
             
         return stored_value, f"Ticker selezionato: {stored_value}", f"Selected-ticker aggiornato con: {stored_value}"
 
-    # Callback per gestire l'input manuale
     @app.callback(
         [dd.Output('ticker-store', 'data', allow_duplicate=True),
          dd.Output('debug-store-value', 'children', allow_duplicate=True)],
