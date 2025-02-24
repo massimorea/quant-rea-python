@@ -14,7 +14,7 @@ def get_search_layout():
         dcc.Dropdown(
             id='search-dropdown',
             options=[],  # Verrà aggiornato dinamicamente
-            value=None,  # Il valore selezionato rimane
+            #value=None,  # Il valore selezionato rimane
             placeholder="Digita almeno 3 caratteri per cercare...",
             clearable=False,
             searchable=True,
