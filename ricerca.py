@@ -59,6 +59,7 @@ def register_search_callbacks(app):
         [dd.State('selected-ticker', 'value')]
     )
     def update_selected_ticker(value, current_ticker):
+        print(f"🔍 DEBUG: Valore selezionato nel dropdown: {value}")  # LOG AGGIUNTO
         if value is None or value == "":
             return current_ticker, current_ticker  # ✅ Mantiene l'ultimo valore selezionato se non cambia
         return value, value  # ✅ Salva il valore selezionato sia nel dropdown che in `selected-ticker`
