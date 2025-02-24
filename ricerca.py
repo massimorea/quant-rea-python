@@ -26,7 +26,7 @@ def get_search_layout():
             id='selected-ticker',
             type='text',
             value="",
-            style={'display': 'online'}
+            style={'display': 'online','backgroundColor': 'grey'}
         ),
     ], style={'textAlign': 'center', 'marginBottom': '20px'})
 
