@@ -51,14 +51,14 @@ def register_search_callbacks(app):
                     'value': f"{row['Exchange']}:{row['Ticker']}"} for _, row in filtered_df.iterrows()]
         return options, ""
 
-    # ✅ Callback per mantenere il valore selezionato e trasferirlo a selected-ticker in app.py
+    # ✅ Callback per aggiornare `selected-ticker` e impedire reset
     @app.callback(
         [dd.Output('selected-ticker', 'value'),
-         dd.Output('search-dropdown', 'value')],  # ✅ Mantiene il valore nel dropdown
+         dd.Output('search-dropdown', 'value')],  # ✅ Mantiene il valore selezionato nel dropdown
         [dd.Input('search-dropdown', 'value')],
         [dd.State('selected-ticker', 'value')]
     )
     def update_selected_ticker(value, current_ticker):
-        if value is None:
-            return current_ticker, current_ticker  # Se nessun valore selezionato, mantiene il precedente
-        return value, value  # ✅ Mantiene il valore nel dropdown e aggiorna selected-ticker
+        if value is None or value == "":
+            return current_ticker, current_ticker  # ✅ Mantiene l'ultimo valore selezionato se non cambia
+        return value, value  # ✅ Salva il valore selezionato sia nel dropdown che in `selected-ticker`
