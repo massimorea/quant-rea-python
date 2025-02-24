@@ -24,17 +24,41 @@ app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'pa
     get_search_layout(),
 
     # Input nascosto per memorizzare il ticker selezionato
-    dcc.Input(id='selected-ticker', type='text', value="", style={'display': 'none','backgroundColor': 'grey'}),
+    dcc.Input(id='selected-ticker', type='text', value="", style={'display': 'none', 'backgroundColor': 'grey'}),
 
-    html.Div(id='loading-message', style={'color': 'yellow', 'marginTop': '10px', 'textAlign': 'center'}),
+    # Messaggio di caricamento AJAX
+    html.Div(id='loading-message', style={'color': 'yellow', 'marginTop': '10px', 'textAlign': 'center', 'display': 'none'}),
 
-    # Container per i grafici
-    html.Div(id='output-container', children=[
-        dcc.Graph(id='grafico-rendimento-giornaliero'),
-        dcc.Graph(id='grafico-rendimento-settimanale'),
-        dcc.Graph(id='grafico-rendimento-mensile'),
-        dcc.Graph(id='grafico-volatilita')
-    ])
+    # Spinner di caricamento
+    dcc.Loading(
+        id="loading-spinner",
+        type="circle",
+        children=[
+            html.Div(id='output-container', children=[
+                dcc.Graph(id='grafico-rendimento-giornaliero'),
+                dcc.Graph(id='grafico-rendimento-settimanale'),
+                dcc.Graph(id='grafico-rendimento-mensile'),
+                dcc.Graph(id='grafico-volatilita')
+            ])
+        ]
+    ),
+
+    # JavaScript per gestire il caricamento AJAX
+    html.Script('''
+        document.addEventListener("DOMContentLoaded", function() {
+            let tickerInput = document.getElementById("selected-ticker");
+            let loadingMessage = document.getElementById("loading-message");
+            
+            tickerInput.addEventListener("change", function() {
+                loadingMessage.style.display = "block";
+                loadingMessage.innerText = "🔄 Caricamento dati in corso...";
+                
+                setTimeout(() => {
+                    loadingMessage.style.display = "none";
+                }, 5000);  // Nasconde il messaggio dopo 5 secondi
+            });
+        });
+    ''')
 ])
 
 # Funzione per ottenere i dati SOLO da TradingView
@@ -63,20 +87,17 @@ def get_asset_data(ticker):
     [dd.Output('grafico-rendimento-giornaliero', 'figure'),
      dd.Output('grafico-rendimento-settimanale', 'figure'),
      dd.Output('grafico-rendimento-mensile', 'figure'),
-     dd.Output('grafico-volatilita', 'figure'),
-     dd.Output('loading-message', 'children')],
+     dd.Output('grafico-volatilita', 'figure')],
     [dd.Input('selected-ticker', 'value')]  # Usa il valore selezionato dalla ricerca
 )
 def update_graphs(ticker):
     if not ticker:
-        return go.Figure(), go.Figure(), go.Figure(), go.Figure(), ""
-
-    loading_message = "🔄 Scaricamento dati, attendere..."
+        return go.Figure(), go.Figure(), go.Figure(), go.Figure()
 
     data = get_asset_data(ticker)
 
     if data is None:
-        return go.Figure(), go.Figure(), go.Figure(), go.Figure(), "⚠️ Ticker non valido."
+        return go.Figure(), go.Figure(), go.Figure(), go.Figure()
 
     rendimento_giornaliero_fig = go.Figure(data=[
         go.Bar(x=data.index, y=data['Rendimento_Giornaliero'] * 100, name="Rendimento Giornaliero", marker_color='blue')
@@ -106,7 +127,7 @@ def update_graphs(ticker):
     volatilita_fig.update_layout(title=f"Volatilità - {ticker}", xaxis_title="Data", yaxis_title="Volatilità",
                                  height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
 
-    return rendimento_giornaliero_fig, rendimento_settimanale_fig, rendimento_mensile_fig, volatilita_fig, ""
+    return rendimento_giornaliero_fig, rendimento_settimanale_fig, rendimento_mensile_fig, volatilita_fig
 
 # Registra le funzioni di ricerca
 register_search_callbacks(app)
@@ -114,3 +135,4 @@ register_search_callbacks(app)
 # Avvia il server
 if __name__ == '__main__':
     app.run_server(debug=True)
+
