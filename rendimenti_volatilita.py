@@ -10,14 +10,13 @@ from tvDatafeed import TvDatafeed, Interval
 from ricerca import get_search_layout, register_search_callbacks  # Importa ricerca.py
 
 # Inizializzazione dell'app Dash
-app = dash.Dash(__name__)
-server = app.server  # Necessario per Heroku
+app = dash.Dash(__name__, server=False)
 
 # Connessione a TradingView
 tv = TvDatafeed()
 
 # Layout dell'app, ora usa la ricerca con selezione automatica
-app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'padding': '20px'}, children=[
+layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'padding': '20px'}, children=[
     html.H1("QUANT-REA: Analisi Volatilità Asset", style={'textAlign': 'center', 'color': 'cyan'}),
 
     # Sezione di ricerca con valore selezionato
@@ -60,6 +59,8 @@ app.layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'pa
         });
     ''')
 ])
+
+app.layout = layout
 
 # Funzione per ottenere i dati SOLO da TradingView
 def get_asset_data(ticker):
@@ -131,7 +132,3 @@ def update_graphs(ticker):
 
 # Registra le funzioni di ricerca
 register_search_callbacks(app)
-
-# Avvia il server
-if __name__ == '__main__':
-    app.run_server(debug=True)
