@@ -4,7 +4,12 @@ import dash.dependencies as dd
 from dash.exceptions import PreventUpdate
 import pandas as pd
 
+def load_tickers_from_csv(path="all_tickers.csv"):
+    """ Carica il CSV con i ticker. """
+    return pd.read_csv(path)
+
 def get_search_layout():
+    """ Layout con dropdown per la ricerca. """
     return html.Div([
         html.Label("Seleziona un Asset Ticker / Nome dell'azienda:", style={'color': 'white'}),
         dcc.Store(id='ticker-store', storage_type='memory'),
@@ -29,6 +34,8 @@ def get_search_layout():
     ], style={'textAlign': 'center', 'marginBottom': '20px'})
 
 def register_search_callbacks(app):
+    """ Callback per aggiornare il dropdown e salvare il ticker selezionato. """
+    
     @app.callback(
         [dd.Output('search-dropdown', 'options'),
          dd.Output('search-status', 'children')],
