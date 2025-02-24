@@ -1,6 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 import dash.dependencies as dd
+from dash.exceptions import PreventUpdate
 import pandas as pd
 import dash
 
@@ -68,20 +69,21 @@ def register_search_callbacks(app):
         prevent_initial_call=True
     )
     def update_selected_ticker(dropdown_value, current_value):
-        # Ottieni informazioni sul trigger del callback
         ctx = dash.callback_context
         trigger = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
         print(f"🎯 DEBUG Trigger: {trigger}")
         print(f"📥 DEBUG Dropdown value ricevuto: {dropdown_value}")
         print(f"💾 DEBUG Valore corrente in selected-ticker: {current_value}")
 
+        # Ignora completamente le chiamate con None
         if dropdown_value is None:
-            print("⚠️ DEBUG: Dropdown value è None")
-            return current_value or "", current_value or ""
-            
+            print("⚠️ DEBUG: Ignoro callback con dropdown_value None")
+            raise PreventUpdate
+
+        # Se il valore è una stringa vuota, ignora anche questa
         if isinstance(dropdown_value, str) and dropdown_value.strip() == "":
-            print("⚠️ DEBUG: Dropdown value è stringa vuota")
-            return current_value or "", current_value or ""
+            print("⚠️ DEBUG: Ignoro callback con dropdown_value vuoto")
+            raise PreventUpdate
             
-        print(f"✅ DEBUG: Aggiornamento valori - dropdown: {dropdown_value}")
+        print(f"✅ DEBUG: Aggiornamento valori con: {dropdown_value}")
         return dropdown_value, dropdown_value
