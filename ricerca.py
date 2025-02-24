@@ -3,6 +3,7 @@ import dash_html_components as html
 import dash.dependencies as dd
 from dash.exceptions import PreventUpdate
 import pandas as pd
+import dash
 
 def load_tickers_from_csv(path="all_tickers.csv"):
     """ Carica il CSV con i ticker. """
@@ -60,19 +61,28 @@ def register_search_callbacks(app):
     @app.callback(
         [dd.Output('selected-ticker', 'value'),
          dd.Output('debug-info', 'children')],
-        [dd.Input('search-dropdown', 'value')],
-        [dd.State('selected-ticker', 'value')]
+        [dd.Input('search-dropdown', 'value'),
+         dd.Input('search-dropdown', 'options')],  # Aggiungiamo options come input
+        prevent_initial_call=True
     )
-    def update_selected_ticker(dropdown_value, current_value):
-        print(f"📝 DEBUG update_selected_ticker - dropdown_value: {dropdown_value}, current_value: {current_value}")
+    def update_selected_ticker(dropdown_value, options):
+        # Identifichiamo quale input ha triggato il callback
+        ctx = dash.callback_context
+        trigger_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
         
-        if dropdown_value is None:
-            # Mantieni il valore corrente se il dropdown è None
-            print("⚠️ DEBUG: Dropdown value è None, mantengo valore corrente")
-            return current_value or "", f"Mantenuto valore corrente: {current_value}"
+        print(f"🎯 DEBUG Trigger: {trigger_id}")
+        print(f"📝 DEBUG Dropdown value: {dropdown_value}")
+        print(f"🔢 DEBUG Options count: {len(options) if options else 0}")
+
+        if dropdown_value:
+            print(f"✅ DEBUG: Selezionato nuovo valore: {dropdown_value}")
+            return dropdown_value, f"Ticker selezionato: {dropdown_value}"
         
-        print(f"✅ DEBUG: Aggiornamento ticker a {dropdown_value}")
-        return dropdown_value, f"Ticker selezionato: {dropdown_value}"
+        # Se non c'è un valore ma ci sono opzioni, manteniamo lo stato corrente
+        if options and len(options) > 0:
+            raise PreventUpdate
+
+        return "", "In attesa di selezione..."
 
     @app.callback(
         dd.Output('search-dropdown', 'value'),
