@@ -3,6 +3,7 @@ import dash_html_components as html
 import dash.dependencies as dd
 from dash.exceptions import PreventUpdate
 import pandas as pd
+import dash
 
 def load_tickers_from_csv(path="all_tickers.csv"):
     """ Carica il CSV con i ticker. """
@@ -45,6 +46,9 @@ def register_search_callbacks(app):
         [dd.Input('search-dropdown', 'search_value')]
     )
     def update_dropdown_options(search_value):
+        ctx = dash.callback_context
+        trigger = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else 'No trigger'
+        print(f"🔍 DEBUG update_dropdown_options - Trigger: {trigger}")
         print(f"🔍 DEBUG update_dropdown_options - search_value: {search_value}")
         
         if not search_value or len(search_value) < 3:
@@ -69,8 +73,14 @@ def register_search_callbacks(app):
         prevent_initial_call=True
     )
     def store_selected_value(value):
+        ctx = dash.callback_context
+        trigger = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else 'No trigger'
+        print(f"💾 DEBUG store_selected_value - Trigger: {trigger}")
         print(f"💾 DEBUG store_selected_value - value ricevuto: {value}")
+        print(f"💾 DEBUG store_selected_value - tipo del value: {type(value)}")
+        
         if value is None:
+            print("⚠️ DEBUG store_selected_value - PreventUpdate per value None")
             raise PreventUpdate
         return value, f"Store aggiornato con: {value}"
 
@@ -82,8 +92,14 @@ def register_search_callbacks(app):
         prevent_initial_call=True
     )
     def update_selected_ticker(stored_value):
+        ctx = dash.callback_context
+        trigger = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else 'No trigger'
+        print(f"📝 DEBUG update_selected_ticker - Trigger: {trigger}")
         print(f"📝 DEBUG update_selected_ticker - stored_value: {stored_value}")
+        print(f"📝 DEBUG update_selected_ticker - tipo dello stored_value: {type(stored_value)}")
+        
         if stored_value is None:
+            print("⚠️ DEBUG update_selected_ticker - PreventUpdate per stored_value None")
             raise PreventUpdate
             
         return stored_value, f"Ticker selezionato: {stored_value}", f"Selected-ticker aggiornato con: {stored_value}"
@@ -96,7 +112,13 @@ def register_search_callbacks(app):
         prevent_initial_call=True
     )
     def handle_manual_input(manual_value):
+        ctx = dash.callback_context
+        trigger = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else 'No trigger'
+        print(f"✍️ DEBUG handle_manual_input - Trigger: {trigger}")
         print(f"✍️ DEBUG handle_manual_input - manual_value: {manual_value}")
+        print(f"✍️ DEBUG handle_manual_input - tipo del manual_value: {type(manual_value)}")
+        
         if not manual_value:
+            print("⚠️ DEBUG handle_manual_input - PreventUpdate per manual_value vuoto")
             raise PreventUpdate
         return manual_value, f"Store aggiornato manualmente con: {manual_value}"
