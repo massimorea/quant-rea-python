@@ -131,6 +131,17 @@ def update_graphs(ticker):
 register_search_callbacks(app)
 
 if __name__ == '__main__':
-    # Aggiungiamo questa parte per il worker
-    port = int(os.environ.get("PORT", 5000))
-    app.run_server(host='0.0.0.0', port=port)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--worker', action='store_true', help='Run as worker')
+    args = parser.parse_args()
+
+    if args.worker:
+        # Modalità worker: mantiene il processo in esecuzione
+        import time
+        while True:
+            time.sleep(1)
+    else:
+        # Modalità normale: avvia il server
+        port = int(os.environ.get("PORT", 5000))
+        app.run_server(host='0.0.0.0', port=port)
