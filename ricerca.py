@@ -4,6 +4,7 @@ import dash.dependencies as dd
 from dash.exceptions import PreventUpdate
 import pandas as pd
 import dash
+from datetime import datetime
 
 def load_tickers_from_csv(path="all_tickers.csv"):
     """ Carica il CSV con i ticker. """
@@ -47,8 +48,8 @@ def register_search_callbacks(app):
     )
     def update_dropdown_options(search_value):
         ctx = dash.callback_context
-        trigger = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else 'No trigger'
-        print(f"🔍 DEBUG update_dropdown_options - Trigger: {trigger}")
+        print(f"\n🔍 DEBUG update_dropdown_options - Timestamp: {datetime.now()}")
+        print(f"🔍 DEBUG update_dropdown_options - Trigger completo: {ctx.triggered}")
         print(f"🔍 DEBUG update_dropdown_options - search_value: {search_value}")
         
         if not search_value or len(search_value) < 3:
@@ -70,14 +71,20 @@ def register_search_callbacks(app):
         [dd.Output('ticker-store', 'data'),
          dd.Output('debug-store-value', 'children')],
         [dd.Input('search-dropdown', 'value')],
+        [dd.State('search-dropdown', 'options'),
+         dd.State('ticker-store', 'data')],
         prevent_initial_call=True
     )
-    def store_selected_value(value):
+    def store_selected_value(value, current_options, current_store):
         ctx = dash.callback_context
-        trigger = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else 'No trigger'
-        print(f"💾 DEBUG store_selected_value - Trigger: {trigger}")
+        print(f"\n💾 DEBUG store_selected_value - Timestamp: {datetime.now()}")
+        print(f"💾 DEBUG store_selected_value - Trigger completo: {ctx.triggered}")
+        print(f"💾 DEBUG store_selected_value - Tutti gli inputs: {ctx.inputs}")
+        print(f"💾 DEBUG store_selected_value - Tutti gli states: {ctx.states}")
         print(f"💾 DEBUG store_selected_value - value ricevuto: {value}")
         print(f"💾 DEBUG store_selected_value - tipo del value: {type(value)}")
+        print(f"💾 DEBUG store_selected_value - opzioni correnti: {len(current_options) if current_options else 0}")
+        print(f"💾 DEBUG store_selected_value - valore corrente store: {current_store}")
         
         if value is None:
             print("⚠️ DEBUG store_selected_value - PreventUpdate per value None")
@@ -93,8 +100,8 @@ def register_search_callbacks(app):
     )
     def update_selected_ticker(stored_value):
         ctx = dash.callback_context
-        trigger = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else 'No trigger'
-        print(f"📝 DEBUG update_selected_ticker - Trigger: {trigger}")
+        print(f"\n📝 DEBUG update_selected_ticker - Timestamp: {datetime.now()}")
+        print(f"📝 DEBUG update_selected_ticker - Trigger completo: {ctx.triggered}")
         print(f"📝 DEBUG update_selected_ticker - stored_value: {stored_value}")
         print(f"📝 DEBUG update_selected_ticker - tipo dello stored_value: {type(stored_value)}")
         
@@ -113,8 +120,8 @@ def register_search_callbacks(app):
     )
     def handle_manual_input(manual_value):
         ctx = dash.callback_context
-        trigger = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else 'No trigger'
-        print(f"✍️ DEBUG handle_manual_input - Trigger: {trigger}")
+        print(f"\n✍️ DEBUG handle_manual_input - Timestamp: {datetime.now()}")
+        print(f"✍️ DEBUG handle_manual_input - Trigger completo: {ctx.triggered}")
         print(f"✍️ DEBUG handle_manual_input - manual_value: {manual_value}")
         print(f"✍️ DEBUG handle_manual_input - tipo del manual_value: {type(manual_value)}")
         
