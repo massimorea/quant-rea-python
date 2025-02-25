@@ -20,6 +20,10 @@ rendimenti_volatilita.register_callbacks(app)  # ✅ Ora i callback sono nel ser
 import rendimenti_asset
 rendimenti_asset.register_callbacks(app)  # ✅ Ora i callback sono nel server principale
 
+
+import nuovi_massimi_anno
+nuovi_massimi_anno.register_callbacks(app)  # ✅ Ora i callback sono nel server principale
+
 # Layout base di Dash
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
@@ -52,6 +56,7 @@ def display_page(pathname):
 # Registra i callback delle altre app
 app.callback_map.update(rendimenti_volatilita.app.callback_map)
 app.callback_map.update(rendimenti_asset.app.callback_map)
+app.callback_map.update(nuovi_massimi_anno.app.callback_map)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
