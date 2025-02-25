@@ -3,8 +3,7 @@ from dash import html, dcc
 from flask import Flask
 import os
 
-from ricerca import register_search_callbacks
-register_search_callbacks(app)
+
 
 # Inizializzazione del server Flask e Dash
 server = Flask(__name__)
