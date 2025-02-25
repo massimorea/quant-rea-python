@@ -6,7 +6,10 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from tvDatafeed import TvDatafeed, Interval
-from ricerca import get_search_layout, register_search_callbacks
+#from ricerca import get_search_layout, register_search_callbacks
+
+from ricerca import register_search_callbacks
+register_search_callbacks(app)
 
 # Inizializzazione dell'app Dash
 app = dash.Dash(__name__, server=False)
