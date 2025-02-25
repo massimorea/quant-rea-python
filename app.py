@@ -6,9 +6,13 @@ import os
 from ricerca import register_search_callbacks
 register_search_callbacks(app)
 
+
 # Inizializzazione del server Flask e Dash
 server = Flask(__name__)
 app = dash.Dash(__name__, server=server)
+
+from ricerca import register_search_callbacks
+register_search_callbacks(app)
 
 # Importa le app dei worker
 import rendimenti_volatilita
