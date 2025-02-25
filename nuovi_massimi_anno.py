@@ -16,7 +16,7 @@ tv = TvDatafeed()
 
 # Layout della pagina per i nuovi massimi annuali
 layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'padding': '20px'}, children=[
-    html.H1("QUANT-REA: Nuovi Massimi Anno", style={'textAlign': 'center', 'color': 'cyan'}),
+    html.H1("Nuovi Massimi nell'Anno", style={'textAlign': 'center', 'color': 'cyan'}),
 
     # ✅ Sezione di ricerca con valore selezionato
     get_search_layout(),
