@@ -9,6 +9,7 @@ app = dash.Dash(__name__, server=server)
 
 # Importa le app dei worker
 import rendimenti_volatilita
+rendimenti_volatilita.register_callbacks(app)  # ✅ Ora i callback sono nel server principale
 #import rendimenti_asset
 
 # Layout base di Dash
