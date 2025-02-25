@@ -42,7 +42,7 @@ def display_page(pathname):
 
 # Registra i callback delle altre app
 app.callback_map.update(rendimenti_volatilita.app.callback_map)
-app.callback_map.update(rendimenti_asset.app.callback_map)
+#app.callback_map.update(rendimenti_asset.app.callback_map)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
