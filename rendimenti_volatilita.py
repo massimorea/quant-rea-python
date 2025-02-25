@@ -18,7 +18,7 @@ tv = TvDatafeed()
 
 # Layout dell'app, ora usa la ricerca con selezione automatica
 layout = html.Div(style={'backgroundColor': '#121212', 'color': 'white', 'padding': '20px'}, children=[
-    html.H1("QUANT-REA: Analisi Volatilità Asset", style={'textAlign': 'center', 'color': 'cyan'}),
+    html.H1(" Analisi Volatilità Asset", style={'textAlign': 'center', 'color': 'cyan'}),
 
     # Sezione di ricerca con valore selezionato
     get_search_layout(),
