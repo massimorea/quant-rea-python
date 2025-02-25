@@ -81,13 +81,6 @@ def get_asset_data(ticker):
         return None
 
 # Callback per aggiornare automaticamente i grafici dopo la selezione del ticker
-@app.callback(
-    [dd.Output('grafico-rendimento-giornaliero', 'figure'),
-     dd.Output('grafico-rendimento-settimanale', 'figure'),
-     dd.Output('grafico-rendimento-mensile', 'figure'),
-     dd.Output('grafico-volatilita', 'figure')],
-    [dd.Input('selected-ticker', 'value')]
-)
 def update_graphs(ticker):
     if not ticker:
         return go.Figure(), go.Figure(), go.Figure(), go.Figure()
@@ -126,6 +119,17 @@ def update_graphs(ticker):
                                  height=500, paper_bgcolor='#121212', plot_bgcolor='#121212', font=dict(color='white'))
 
     return rendimento_giornaliero_fig, rendimento_settimanale_fig, rendimento_mensile_fig, volatilita_fig
+
+# ✅ Funzione per registrare i callback nell'app principale (usata in app.py)
+def register_callbacks(app):
+    """ Registra i callback dell'analisi della volatilità nell'app principale """
+    app.callback(
+        [dd.Output('grafico-rendimento-giornaliero', 'figure'),
+         dd.Output('grafico-rendimento-settimanale', 'figure'),
+         dd.Output('grafico-rendimento-mensile', 'figure'),
+         dd.Output('grafico-volatilita', 'figure')],
+        [dd.Input('selected-ticker', 'value')]
+    )(update_graphs)  # Usa la funzione di aggiornamento dei grafici
 
 # Registra le funzioni di ricerca
 register_search_callbacks(app)
