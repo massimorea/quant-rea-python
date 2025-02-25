@@ -43,13 +43,17 @@ def display_page(pathname):
             html.Div([
                 dcc.Link('Analisi Asset', href='/asset'),
                 html.Br(),
-                dcc.Link('Analisi Volatilità', href='/volatilita')
+                dcc.Link('Analisi Volatilità', href='/volatilita'),
+                html.Br(),
+                dcc.Link('Nuovi Massimi nell anno', href='/nuovimaxanno')
             ])
         ])
     elif pathname == '/asset':
         return rendimenti_asset.layout
     elif pathname == '/volatilita':
         return rendimenti_volatilita.layout
+    elif pathname == '/nuovimaxanno':
+        return nuovi_massimi_anno.layout    
     else:
         return '404 - Pagina non trovata'
 
