@@ -9,7 +9,7 @@ app = dash.Dash(__name__, server=server)
 
 # Importa le app dei worker
 import rendimenti_volatilita
-import rendimenti_asset
+#import rendimenti_asset
 
 # Layout base di Dash
 app.layout = html.Div([
